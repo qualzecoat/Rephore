@@ -35,7 +35,8 @@ export default function KnowledgeDetailPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [d, setD] = useState<Detail | null>(null);
   const [error, setError] = useState("");
-  const [voted, setVoted] = useState<"like" | "success" | null>(null);
+  const [votedLike, setVotedLike] = useState(false);
+  const [votedSuccess, setVotedSuccess] = useState(false);
 
   useEffect(() => {
     api<Me>("/auth/me")
@@ -55,13 +56,16 @@ export default function KnowledgeDetailPage() {
   }, [me, params.id]);
 
   async function sendFeedback(type: "like" | "success") {
-    if (!params.id || voted) return;
+    if (!params.id) return;
+    if (type === "like" && votedLike) return;
+    if (type === "success" && votedSuccess) return;
     try {
       const r = await api<{ like_count: number; success_count: number }>(
         `/knowledge/${params.id}/feedback`,
         { method: "POST", body: JSON.stringify({ type }) }
       );
-      setVoted(type);
+      if (type === "like") setVotedLike(true);
+      else setVotedSuccess(true);
       setD((prev) =>
         prev ? { ...prev, like_count: r.like_count, success_count: r.success_count } : prev
       );
@@ -132,20 +136,20 @@ export default function KnowledgeDetailPage() {
       <div style={{ display: "flex", gap: "0.5rem" }}>
         <button
           onClick={() => sendFeedback("like")}
-          disabled={!!voted}
+          disabled={votedLike}
           style={{ padding: "0.6rem 1.2rem" }}
         >
           👍 Suka ({d.like_count})
         </button>
         <button
           onClick={() => sendFeedback("success")}
-          disabled={!!voted}
+          disabled={votedSuccess}
           style={{ padding: "0.6rem 1.2rem" }}
         >
           ✅ Berhasil ({d.success_count})
         </button>
       </div>
-      {voted && <p style={{ color: "#15803d" }}>Terima kasih atas testimoninya!</p>}
+      {(votedLike || votedSuccess) && <p style={{ color: "#15803d" }}>Terima kasih atas testimoninya!</p>}
     </main>
   );
 }
