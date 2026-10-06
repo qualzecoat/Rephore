@@ -111,7 +111,15 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
 - **Fase 3** — pencarian (keyword + ranking) + deteksi perangkat WebUSB + histori ✅ (selesai 2026-10-06)
   - Catatan: pencarian semantik pgvector sudah disiapkan kolomnya, tapi embedding
     baru diisi di Fase 4 (butuh AI provider untuk generate embedding)
-- **Fase 4** — AI provider generik + request manual + scheduler otomatis + review queue
+- **Fase 4** — AI provider generik + request manual + scheduler otomatis ✅ (selesai 2026-10-06)
+  - Provider OpenAI-compatible: nama, base URL, API key, tombol ambil daftar model
+    dari base URL, default model, model embedding opsional, temperature, max tokens
+  - Request manual: admin pilih provider + target HP, worker proses ±1 menit,
+    hasil langsung masuk knowledge dengan tag belum direview
+  - Scheduler: N knowledge/hari jam tertentu, topik diputar dari daftar
+  - Worker mengisi embedding bila provider punya embedding_model; pencarian
+    memakai hybrid keyword + semantik (fallback keyword bila gagal)
+  - Testimoni "berhasil" dibatasi 1x per user (ditegakkan di backend)
 - **Fase 5** — testimoni like/berhasil + histori user + hardening deploy VPS
 
 ## 10. Keputusan terbuka
@@ -120,3 +128,4 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
 - Upload gambar per langkah: manual dulu di v1
 - User belum bisa mengusulkan koreksi di v1 (cukup like/berhasil)
 - Steps disimpan sebagai JSONB di tabel `knowledges` (usulan v1)
+- API key provider AI disimpan plain di database v1 — enkripsi at-rest jadi PR berikutnya

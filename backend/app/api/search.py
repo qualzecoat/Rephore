@@ -1,7 +1,7 @@
-"""Pencarian knowledge — keyword + ranking.
+"""Pencarian knowledge — keyword + ranking + semantik (bila tersedia).
 
-Fase 3: pencocokan keyword (judul, brand, model, subkategori, kode HP).
-Fase berikutnya: digabung dengan pencarian semantik via kolom embedding.
+Semantik: bila ada provider aktif dengan embedding_model, query di-embedding
+lalu digabung dengan hasil keyword. Gagal = fallback ke keyword saja.
 """
 
 from fastapi import APIRouter, Depends
@@ -9,26 +9,18 @@ from sqlalchemy import String, cast, func, or_, select
 from sqlalchemy.orm import Session
 
 from ..db.session import get_db
+from ..models.ai import AiProvider
 from ..models.knowledge import Knowledge
 from ..models.user import User
 from ..schemas.knowledge import KnowledgeOut
+from ..services.ai import embed_text
 from .deps import get_current_user
 from .knowledge import _to_out
 
 router = APIRouter(prefix="/search", tags=["search"])
 
 
-@router.get("", response_model=list[KnowledgeOut])
-def search(
-    q: str,
-    category: str | None = None,
-    user: User = Depends(get_current_user),
-    db: Session = Depends(get_db),
-):
-    query = q.strip()
-    if not query:
-        return []
-
+def _keyword_results(db: Session, query: str, category: str | None) -> list[Knowledge]:
     like = f"%{query}%"
     stmt = select(Knowledge).where(
         or_(
@@ -42,8 +34,50 @@ def search(
     )
     if category:
         stmt = stmt.where(Knowledge.category == category)
+    return list(db.scalars(stmt.limit(100)).all())
 
-    results = list(db.scalars(stmt.limit(100)).all())
+
+def _semantic_results(db: Session, query: str) -> list[Knowledge]:
+    """Cari via embedding; kembalikan [] bila tidak tersedia/gagal."""
+    provider = db.scalar(
+        select(AiProvider).where(
+            AiProvider.is_active == True,
+            AiProvider.embedding_model.is_not(None),
+        )
+    )
+    if provider is None or not provider.embedding_model:
+        return []
+    try:
+        vec = embed_text(
+            provider.base_url, provider.api_key, provider.embedding_model, query
+        )
+        if len(vec) != 1536:
+            return []
+        return list(
+            db.scalars(
+                select(Knowledge)
+                .where(Knowledge.embedding.is_not(None))
+                .order_by(Knowledge.embedding.cosine_distance(vec))
+                .limit(20)
+            ).all()
+        )
+    except Exception:
+        return []
+
+
+@router.get("", response_model=list[KnowledgeOut])
+def search(
+    q: str,
+    category: str | None = None,
+    semantic: bool = True,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = q.strip()
+    if not query:
+        return []
+
+    keyword = _keyword_results(db, query, category)
 
     def score(k: Knowledge) -> int:
         ql = query.lower()
@@ -54,5 +88,17 @@ def search(
             return 2
         return 1
 
-    results.sort(key=lambda k: (score(k), k.created_at), reverse=True)
-    return [_to_out(k) for k in results]
+    keyword.sort(key=lambda k: (score(k), k.created_at), reverse=True)
+
+    if not semantic:
+        return [_to_out(k) for k in keyword]
+
+    seen = {k.id for k in keyword}
+    merged = list(keyword)
+    for k in _semantic_results(db, query):
+        if k.id not in seen:
+            if category and k.category != category:
+                continue
+            merged.append(k)
+            seen.add(k.id)
+    return [_to_out(k) for k in merged]

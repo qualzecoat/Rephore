@@ -1,6 +1,9 @@
+# Build context = root repo (lihat docker-compose.yml),
+# supaya worker bisa memakai kode backend/app yang sama.
 FROM python:3.12-slim
 WORKDIR /app
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-COPY . .
+COPY backend/app ./app
+COPY worker/main.py ./main.py
 CMD ["python", "main.py"]

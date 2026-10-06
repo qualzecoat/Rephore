@@ -26,7 +26,9 @@ services:
       - "8000:8000"
 
   worker:
-    build: ./worker
+    build:
+      context: .
+      dockerfile: worker/Dockerfile
     restart: unless-stopped
     env_file: ./backend/.env
     depends_on:

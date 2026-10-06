@@ -8,10 +8,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from .api import auth, history, knowledge, search, users
+from .api import ai, auth, history, knowledge, search, users
 from .core.config import settings
 from .db.base import Base
 from .db.session import engine
+from .models import ai as _ai_model  # noqa: F401 — daftarkan model
 from .models import device as _device_model  # noqa: F401 — daftarkan model
 from .models import knowledge as _knowledge_model  # noqa: F401 — daftarkan model
 from .models import user as _user_model  # noqa: F401 — daftarkan model
@@ -53,6 +54,7 @@ app.include_router(users.router)
 app.include_router(knowledge.router)
 app.include_router(search.router)
 app.include_router(history.router)
+app.include_router(ai.router)
 
 
 @app.get("/health")

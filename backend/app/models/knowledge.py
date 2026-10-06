@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import JSON, DateTime, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Integer, String, Text, text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from ..db.base import Base
@@ -46,3 +46,29 @@ class Knowledge(Base):
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
+
+
+class KnowledgeFeedback(Base):
+    """Catatan siapa memberi testimoni apa — 'berhasil' dibatasi 1x per user."""
+
+    __tablename__ = "knowledge_feedbacks"
+    __table_args__ = (
+        Index(
+            "uq_feedback_success_once",
+            "user_id",
+            "knowledge_id",
+            unique=True,
+            postgresql_where=text("kind = 'success'"),
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    knowledge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("knowledges.id")
+    )
+    # "like" | "success"
+    kind: Mapped[str] = mapped_column(String(16))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

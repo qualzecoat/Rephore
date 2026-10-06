@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from ..db.session import get_db
 from ..models.device import KnowledgeUsage
-from ..models.knowledge import Knowledge
+from ..models.knowledge import Knowledge, KnowledgeFeedback
 from ..models.user import User
 from ..schemas.knowledge import (
     FeedbackIn,
@@ -16,6 +16,7 @@ from ..schemas.knowledge import (
     KnowledgeUpdate,
     ParseOut,
 )
+from ..services.knowledge import apply_parsed
 from ..services.parser import parse_bbcode
 from .deps import get_current_user, require_admin
 
@@ -65,28 +66,6 @@ def _to_detail(k: Knowledge) -> KnowledgeDetail:
     )
 
 
-def _apply_parsed(k: Knowledge, parsed: dict, bbcode: str) -> None:
-    meta = parsed["meta"]
-    k.title = parsed["title"]
-    k.brand = meta["brand"] or None
-    k.model = meta["model"] or None
-    k.codes = meta["codes"]
-    k.category = meta["category"] or None
-    k.subcategory = meta["subcategory"] or None
-    k.difficulty = meta["difficulty"] or None
-    k.est_time = meta["est_time"] or None
-    k.tools = parsed["tools"]
-    k.troubleshooting = parsed["troubleshooting"] or None
-    k.content_json = {
-        "title": parsed["title"],
-        "meta": meta,
-        "tools": parsed["tools"],
-        "steps": parsed["steps"],
-        "troubleshooting": parsed["troubleshooting"],
-    }
-    k.content_markdown = bbcode
-
-
 @router.post("/parse", response_model=ParseOut)
 def parse_preview(
     data: KnowledgeCreate, _: User = Depends(require_admin)
@@ -111,7 +90,7 @@ def create_knowledge(
             detail={"message": "Judul wajib ada", "warnings": parsed["warnings"]},
         )
     k = Knowledge(source=data.source, created_by=admin.id)
-    _apply_parsed(k, parsed, data.bbcode)
+    apply_parsed(k, parsed, data.bbcode)
     db.add(k)
     db.commit()
     db.refresh(k)
@@ -173,7 +152,7 @@ def update_knowledge(
                 status_code=400,
                 detail={"message": "Judul wajib ada", "warnings": parsed["warnings"]},
             )
-        _apply_parsed(k, parsed, data.bbcode)
+        apply_parsed(k, parsed, data.bbcode)
     if data.status is not None:
         if data.status not in ("belum_direview", "sudah_direview"):
             raise HTTPException(status_code=400, detail="Status tidak valid")
@@ -234,13 +213,28 @@ def feedback(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Testimoni user: like atau tombol berhasil."""
+    """Testimoni user: like atau tombol berhasil (berhasil = 1x per user)."""
     k = db.get(Knowledge, knowledge_id)
     if k is None:
         raise HTTPException(status_code=404, detail="Knowledge tidak ditemukan")
     if data.type == "like":
         k.like_count += 1
     elif data.type == "success":
+        exists = db.scalar(
+            select(KnowledgeFeedback).where(
+                KnowledgeFeedback.user_id == user.id,
+                KnowledgeFeedback.knowledge_id == k.id,
+                KnowledgeFeedback.kind == "success",
+            )
+        )
+        if exists:
+            raise HTTPException(
+                status_code=400,
+                detail="Kamu sudah menandai berhasil untuk knowledge ini",
+            )
+        db.add(
+            KnowledgeFeedback(user_id=user.id, knowledge_id=k.id, kind="success")
+        )
         k.success_count += 1
     else:
         raise HTTPException(
@@ -248,3 +242,20 @@ def feedback(
         )
     db.commit()
     return {"like_count": k.like_count, "success_count": k.success_count}
+
+
+@router.get("/{knowledge_id}/my-feedback")
+def my_feedback(
+    knowledge_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Apakah user ini sudah menandai berhasil untuk knowledge ini."""
+    fb = db.scalar(
+        select(KnowledgeFeedback).where(
+            KnowledgeFeedback.user_id == user.id,
+            KnowledgeFeedback.knowledge_id == knowledge_id,
+            KnowledgeFeedback.kind == "success",
+        )
+    )
+    return {"success_given": fb is not None}
