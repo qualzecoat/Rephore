@@ -36,7 +36,7 @@ type Schedule = {
   brand: string | null;
   phone_model: string | null;
   category: string | null;
-  topic: string;
+  topic: string | null;
   run_hour: number;
   is_active: boolean;
   last_run_date: string | null;

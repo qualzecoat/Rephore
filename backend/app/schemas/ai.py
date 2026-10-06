@@ -118,7 +118,7 @@ class ScheduleOut(BaseModel):
     brand: str | None
     phone_model: str | None
     category: str | None
-    topic: str
+    topic: str | None
     run_hour: int
     is_active: bool
     last_run_date: date | None
