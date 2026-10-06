@@ -1,16 +1,36 @@
 """Rephore backend — FastAPI entrypoint."""
 
+import asyncio
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
+from sqlalchemy.exc import OperationalError
 
 from .api import auth, users
 from .db.base import Base
 from .db.session import engine
 from .models import user as _user_model  # noqa: F401 — daftarkan model
 
-# Fase 1: buat tabel otomatis. Fase berikutnya: migrasi Alembic.
-Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="Rephore API", version="0.2.0")
+async def wait_for_db(retries: int = 30, delay: float = 2.0) -> None:
+    """Tunggu database siap (Postgres butuh waktu saat pertama start)."""
+    for _ in range(retries):
+        try:
+            Base.metadata.create_all(bind=engine)
+            return
+        except OperationalError:
+            await asyncio.sleep(delay)
+    raise RuntimeError("Database tidak bisa dijangkau setelah menunggu")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await wait_for_db()
+    yield
+
+
+# Fase 1: buat tabel otomatis. Fase berikutnya: migrasi Alembic.
+app = FastAPI(title="Rephore API", version="0.2.0", lifespan=lifespan)
 
 app.include_router(auth.router)
 app.include_router(users.router)

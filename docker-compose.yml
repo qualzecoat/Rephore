@@ -17,6 +17,7 @@ services:
 
   backend:
     build: ./backend
+    restart: unless-stopped
     env_file: ./backend/.env
     depends_on:
       - postgres
@@ -26,6 +27,7 @@ services:
 
   worker:
     build: ./worker
+    restart: unless-stopped
     env_file: ./backend/.env
     depends_on:
       - postgres
@@ -34,6 +36,7 @@ services:
 
   frontend:
     build: ./frontend
+    restart: unless-stopped
     env_file: ./frontend/.env.local
     depends_on:
       - backend
