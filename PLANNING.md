@@ -105,8 +105,8 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
 
 ## 9. Roadmap
 
-- **Fase 0** — inisialisasi monorepo + commit pertama ✅ (fase ini)
-- **Fase 1** — auth (admin/user), manajemen user oleh admin
+- **Fase 0** — inisialisasi monorepo + commit pertama ✅
+- **Fase 1** — auth (admin/user), manajemen user oleh admin ✅ (selesai 2026-10-06)
 - **Fase 2** — CRUD knowledge + parser BBCode + tag review
 - **Fase 3** — pencarian (keyword + semantik pgvector) + deteksi perangkat WebUSB
 - **Fase 4** — AI provider generik + request manual + scheduler otomatis + review queue
