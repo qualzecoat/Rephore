@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { api, type Me } from "@/lib/api";
+import Navbar from "@/components/Navbar";
 
 type Knowledge = {
   id: string;
@@ -153,11 +153,7 @@ export default function AdminKnowledgePage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "2rem auto", padding: "0 1rem" }}>
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-        <Link href="/admin/ai">AI Generate</Link>
-        <Link href="/admin/users">Users</Link>
-        <Link href="/admin/history">Histori</Link>
-      </div>
+      <Navbar />
       <h1>Kelola Knowledge</h1>
 
       <h2>{editingId ? "Edit knowledge" : "Buat knowledge baru"}</h2>

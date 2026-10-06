@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, type Me } from "@/lib/api";
+import Navbar from "@/components/Navbar";
 
 type User = {
   id: string;
@@ -62,6 +63,7 @@ export default function AdminUsersPage() {
 
   return (
     <main style={{ maxWidth: 720, margin: "2rem auto", padding: "0 1rem" }}>
+      <Navbar />
       <h1>Kelola User</h1>
       <p style={{ color: "#666" }}>
         Login sebagai <b>{me.username}</b> (admin)

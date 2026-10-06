@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, clearToken, type Me } from "@/lib/api";
+import { api, type Me } from "@/lib/api";
+import Navbar from "@/components/Navbar";
 import { detectUsbDevice, webUsbSupported, type DetectedDevice } from "@/lib/detect";
 
 type Knowledge = {
@@ -25,7 +26,7 @@ const TAG_COLORS: Record<string, string> = {
 
 export default function Home() {
   const router = useRouter();
-  const [me, setMe] = useState<Me | null>(null);
+  const [ready, setReady] = useState(false);
   const [q, setQ] = useState("");
   const [category, setCategory] = useState("");
   const [results, setResults] = useState<Knowledge[]>([]);
@@ -35,7 +36,7 @@ export default function Home() {
 
   useEffect(() => {
     api<Me>("/auth/me")
-      .then(setMe)
+      .then(() => setReady(true))
       .catch(() => router.push("/login"));
   }, [router]);
 
@@ -77,24 +78,12 @@ export default function Home() {
     }
   }
 
-  function logout() {
-    clearToken();
-    router.push("/login");
-  }
-
-  if (!me) return <main style={{ padding: "2rem" }}>Memuat...</main>;
+  if (!ready) return <main style={{ padding: "2rem" }}>Memuat...</main>;
 
   return (
     <main style={{ maxWidth: 760, margin: "2rem auto", padding: "0 1rem" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Rephore</h1>
-        <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <span style={{ color: "#666", fontSize: "0.9rem" }}>{me.username}</span>
-          <Link href="/history">Riwayat</Link>
-          {me.role === "admin" && <Link href="/admin/knowledge">Admin</Link>}
-          <button onClick={logout}>Keluar</button>
-        </div>
-      </div>
+      <Navbar />
+      <h1>Pencarian knowledge</h1>
 
       <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
         <input

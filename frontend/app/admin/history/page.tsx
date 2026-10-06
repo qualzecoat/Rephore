@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type Me } from "@/lib/api";
+import Navbar from "@/components/Navbar";
 
 type Detection = {
   id: string;
@@ -47,7 +48,7 @@ export default function AdminHistoryPage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "2rem auto", padding: "0 1rem" }}>
-      <Link href="/admin/knowledge">← Knowledge</Link>
+      <Navbar />
       <h1>Histori</h1>
 
       <h2>Deteksi perangkat oleh user</h2>

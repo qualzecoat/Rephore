@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type Me } from "@/lib/api";
+import Navbar from "@/components/Navbar";
 
 type Step = {
   n: number;
@@ -83,7 +84,7 @@ export default function KnowledgeDetailPage() {
 
   return (
     <main style={{ maxWidth: 760, margin: "2rem auto", padding: "0 1rem" }}>
-      <Link href="/">← Kembali ke pencarian</Link>
+      <Navbar />
       <h1 style={{ marginBottom: "0.25rem" }}>{d.title}</h1>
       <p style={{ color: "#666", marginTop: 0 }}>
         {[d.brand, d.model, d.category, d.subcategory, d.difficulty, d.est_time]

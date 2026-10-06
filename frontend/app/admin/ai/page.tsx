@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type Me } from "@/lib/api";
+import Navbar from "@/components/Navbar";
 
 type Provider = {
   id: string;
@@ -216,11 +217,7 @@ export default function AdminAiPage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "2rem auto", padding: "0 1rem" }}>
-      <div style={{ display: "flex", gap: "1rem", marginBottom: "1rem" }}>
-        <Link href="/admin/knowledge">Knowledge</Link>
-        <Link href="/admin/users">Users</Link>
-        <Link href="/admin/history">Histori</Link>
-      </div>
+      <Navbar />
       <h1>AI Provider & Generate</h1>
       {error && <p style={{ color: "crimson" }}>{error}</p>}
 

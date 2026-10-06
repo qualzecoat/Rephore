@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, clearToken, type Me } from "@/lib/api";
+import { api, type Me } from "@/lib/api";
+import Navbar from "@/components/Navbar";
 
 type Detection = {
   id: string;
@@ -56,18 +57,8 @@ export default function UserHistoryPage() {
 
   return (
     <main style={{ maxWidth: 900, margin: "2rem auto", padding: "0 1rem" }}>
-      <Link href="/">← Beranda</Link>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <h1>Riwayat saya</h1>
-        <button
-          onClick={() => {
-            clearToken();
-            router.push("/login");
-          }}
-        >
-          Keluar
-        </button>
-      </div>
+      <Navbar />
+      <h1>Riwayat saya</h1>
 
       <h2>Deteksi perangkat</h2>
       {detections.length === 0 && <p>Belum ada.</p>}
