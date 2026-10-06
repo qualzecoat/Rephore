@@ -107,7 +107,7 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
 
 - **Fase 0** — inisialisasi monorepo + commit pertama ✅
 - **Fase 1** — auth (admin/user), manajemen user oleh admin ✅ (selesai 2026-10-06)
-- **Fase 2** — CRUD knowledge + parser BBCode + tag review
+- **Fase 2** — CRUD knowledge + parser BBCode + tag review ✅ (selesai 2026-10-06)
 - **Fase 3** — pencarian (keyword + semantik pgvector) + deteksi perangkat WebUSB
 - **Fase 4** — AI provider generik + request manual + scheduler otomatis + review queue
 - **Fase 5** — testimoni like/berhasil + histori user + hardening deploy VPS
