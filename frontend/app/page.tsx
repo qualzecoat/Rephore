@@ -90,6 +90,7 @@ export default function Home() {
         <h1>Rephore</h1>
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
           <span style={{ color: "#666", fontSize: "0.9rem" }}>{me.username}</span>
+          <Link href="/history">Riwayat</Link>
           {me.role === "admin" && <Link href="/admin/knowledge">Admin</Link>}
           <button onClick={logout}>Keluar</button>
         </div>

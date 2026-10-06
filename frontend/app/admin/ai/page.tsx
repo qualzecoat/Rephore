@@ -202,6 +202,16 @@ export default function AdminAiPage() {
     load();
   }
 
+  async function deleteSchedule(s: Schedule) {
+    if (!confirm(`Hapus jadwal "${s.name}"? Tidak bisa dikembalikan.`)) return;
+    try {
+      await api(`/ai/schedules/${s.id}`, { method: "DELETE" });
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menghapus jadwal");
+    }
+  }
+
   if (!me) return <main style={{ padding: "2rem" }}>Memuat...</main>;
 
   return (
@@ -301,6 +311,11 @@ export default function AdminAiPage() {
             <button onClick={() => toggleSchedule(s)} style={{ marginLeft: "0.5rem" }}>
               {s.is_active ? "Nonaktifkan" : "Aktifkan"}
             </button>
+            {!s.is_active && (
+              <button onClick={() => deleteSchedule(s)} style={{ marginLeft: "0.5rem" }}>
+                Hapus
+              </button>
+            )}
           </li>
         ))}
       </ul>

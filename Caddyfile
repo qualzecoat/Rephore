@@ -1,0 +1,14 @@
+# Caddyfile untuk production. Domain diambil dari env var DOMAIN.
+# - https://DOMAIN/       -> frontend (Next.js)
+# - https://DOMAIN/api/*  -> backend (FastAPI), prefix /api dihapus
+# Sertifikat HTTPS diterbitkan otomatis oleh Let's Encrypt.
+
+{$DOMAIN} {
+	handle /api/* {
+		uri strip_prefix /api
+		reverse_proxy backend:8000
+	}
+	handle {
+		reverse_proxy frontend:3000
+	}
+}

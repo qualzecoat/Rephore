@@ -1,4 +1,9 @@
-"""Riwayat deteksi perangkat & pemakaian knowledge — untuk admin."""
+"""Riwayat deteksi perangkat & pemakaian knowledge.
+
+- POST /history/detections: user mencatat hasil deteksi (butuh login)
+- GET /history/detections|usages: ringkasan semua user (admin)
+- GET /history/me/*: riwayat milik user yang sedang login
+"""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
@@ -6,9 +11,16 @@ from sqlalchemy.orm import Session
 
 from ..db.session import get_db
 from ..models.device import DetectionLog, KnowledgeUsage
-from ..models.knowledge import Knowledge
+from ..models.knowledge import Knowledge, KnowledgeFeedback
 from ..models.user import User
-from ..schemas.history import DetectionLogIn, DetectionLogOut, UsageOut
+from ..schemas.history import (
+    DetectionLogIn,
+    DetectionLogOut,
+    MyDetectionOut,
+    MyFeedbackOut,
+    MyUsageOut,
+    UsageOut,
+)
 from .deps import get_current_user, require_admin
 
 router = APIRouter(prefix="/history", tags=["history"])
@@ -80,4 +92,79 @@ def list_usages(
             created_at=usage.created_at,
         )
         for usage, username, title in rows
+    ]
+
+
+@router.get("/me/detections", response_model=list[MyDetectionOut])
+def my_detections(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Riwayat deteksi perangkat milik user yang sedang login."""
+    rows = db.scalars(
+        select(DetectionLog)
+        .where(DetectionLog.user_id == user.id)
+        .order_by(DetectionLog.created_at.desc())
+        .limit(200)
+    ).all()
+    return [
+        MyDetectionOut(
+            id=d.id,
+            method=d.method,
+            vid=d.vid,
+            pid=d.pid,
+            label=d.label,
+            created_at=d.created_at,
+        )
+        for d in rows
+    ]
+
+
+@router.get("/me/usages", response_model=list[MyUsageOut])
+def my_usages(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Riwayat knowledge yang dibuka user yang sedang login."""
+    rows = db.execute(
+        select(KnowledgeUsage, Knowledge.title)
+        .join(Knowledge, KnowledgeUsage.knowledge_id == Knowledge.id)
+        .where(KnowledgeUsage.user_id == user.id)
+        .order_by(KnowledgeUsage.created_at.desc())
+        .limit(200)
+    ).all()
+    return [
+        MyUsageOut(
+            id=usage.id,
+            knowledge_id=usage.knowledge_id,
+            knowledge_title=title,
+            action=usage.action,
+            created_at=usage.created_at,
+        )
+        for usage, title in rows
+    ]
+
+
+@router.get("/me/feedbacks", response_model=list[MyFeedbackOut])
+def my_feedbacks(
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Testimoni (like / berhasil) yang diberikan user yang sedang login."""
+    rows = db.execute(
+        select(KnowledgeFeedback, Knowledge.title)
+        .join(Knowledge, KnowledgeFeedback.knowledge_id == Knowledge.id)
+        .where(KnowledgeFeedback.user_id == user.id)
+        .order_by(KnowledgeFeedback.created_at.desc())
+        .limit(200)
+    ).all()
+    return [
+        MyFeedbackOut(
+            id=fb.id,
+            knowledge_id=fb.knowledge_id,
+            knowledge_title=title,
+            kind=fb.kind,
+            created_at=fb.created_at,
+        )
+        for fb, title in rows
     ]

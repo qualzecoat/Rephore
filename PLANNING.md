@@ -123,9 +123,17 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
   - Worker mengisi embedding bila provider punya embedding_model; pencarian
     memakai hybrid keyword + semantik (fallback keyword bila gagal)
   - Testimoni "berhasil" dibatasi 1x per user (ditegakkan di backend)
-- **Fase 5** — testimoni like/berhasil + histori user + hardening deploy VPS
-  - Tambahan: tombol hapus jadwal (muncul setelah jadwal dinonaktifkan),
-    endpoint `DELETE /ai/schedules/{id}`
+- **Fase 5** — testimoni like/berhasil + histori user + hardening deploy VPS ✅ (selesai 2026-10-06)
+  - Testimoni like/berhasil: sudah ada sejak Fase 4 (tombol di halaman knowledge,
+    "berhasil" dibatasi 1x per user di backend)
+  - Histori user: halaman `/history` ("Riwayat saya") — deteksi perangkat,
+    knowledge yang dibuka, dan testimoni yang diberikan; endpoint
+    `GET /history/me/detections|usages|feedbacks`
+  - Hapus jadwal: tombol Hapus muncul setelah jadwal dinonaktifkan
+    (backend `DELETE /ai/schedules/{id}` sudah ada)
+  - Hardening deploy: `docker-compose.prod.yml` + Caddy (HTTPS otomatis,
+    `/api/*` → backend), DB/redis/backend tidak diekspos publik,
+    panduan `DEPLOY.md`
 
 ## 10. Keputusan terbuka
 

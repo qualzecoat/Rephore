@@ -1,0 +1,41 @@
+# Production override untuk deploy di VPS.
+# Cara pakai (di VPS):
+#   DOMAIN=rephore.contoh.com docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d
+#
+# - Caddy menjadi satu-satunya pintu masuk (port 80/443, HTTPS otomatis via Let's Encrypt)
+# - postgres/redis/backend/frontend TIDAK diekspos ke publik, hanya lewat jaringan internal
+# - Browser memanggil API lewat https://DOMAIN/api/... (same-origin, tanpa masalah CORS)
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+      - frontend
+
+  postgres:
+    ports: []
+
+  redis:
+    ports: []
+
+  backend:
+    ports: []
+
+  frontend:
+    ports: []
+    build:
+      args:
+        NEXT_PUBLIC_API_URL: https://${DOMAIN}/api
+
+volumes:
+  caddy_data:
+  caddy_config:

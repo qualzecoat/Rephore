@@ -3,6 +3,10 @@ WORKDIR /app
 COPY package.json ./
 RUN npm install
 COPY . .
+# URL API publik, di-bake saat build (di dev default localhost,
+# di prod diisi dari docker-compose.prod.yml -> https://DOMAIN/api)
+ARG NEXT_PUBLIC_API_URL=http://localhost:8000
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 RUN npm run build
 
 FROM node:22-alpine AS runner
