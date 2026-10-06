@@ -7,6 +7,8 @@ class Settings(BaseSettings):
     jwt_secret: str = "change-me-in-production"
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 60 * 24  # 1 hari
+    # daftar origin frontend yang boleh akses API, pisahkan dengan koma
+    cors_origins: str = "http://localhost:3000"
 
     class Config:
         env_file = ".env"

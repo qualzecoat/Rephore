@@ -4,9 +4,11 @@ import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import OperationalError
 
 from .api import auth, users
+from .core.config import settings
 from .db.base import Base
 from .db.session import engine
 from .models import user as _user_model  # noqa: F401 — daftarkan model
@@ -31,6 +33,14 @@ async def lifespan(app: FastAPI):
 
 # Fase 1: buat tabel otomatis. Fase berikutnya: migrasi Alembic.
 app = FastAPI(title="Rephore API", version="0.2.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(auth.router)
 app.include_router(users.router)
