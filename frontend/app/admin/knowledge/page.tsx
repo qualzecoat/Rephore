@@ -140,6 +140,11 @@ export default function AdminKnowledgePage() {
   async function doDelete(id: string) {
     if (!confirm("Hapus knowledge ini?")) return;
     await api(`/knowledge/${id}`, { method: "DELETE" });
+    if (id === editingId) {
+      setEditingId(null);
+      setBbcode(TEMPLATE);
+      setPreview(null);
+    }
     load();
   }
 

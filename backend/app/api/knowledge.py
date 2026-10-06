@@ -5,6 +5,7 @@ from sqlalchemy import case, or_, select
 from sqlalchemy.orm import Session
 
 from ..db.session import get_db
+from ..models.device import KnowledgeUsage
 from ..models.knowledge import Knowledge
 from ..models.user import User
 from ..schemas.knowledge import (
@@ -207,6 +208,21 @@ def delete_knowledge(
     if k is None:
         raise HTTPException(status_code=404, detail="Knowledge tidak ditemukan")
     db.delete(k)
+    db.commit()
+    return None
+
+
+@router.post("/{knowledge_id}/view", status_code=204)
+def log_view(
+    knowledge_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Catat bahwa user membuka knowledge (untuk histori admin)."""
+    k = db.get(Knowledge, knowledge_id)
+    if k is None:
+        raise HTTPException(status_code=404, detail="Knowledge tidak ditemukan")
+    db.add(KnowledgeUsage(user_id=user.id, knowledge_id=k.id, action="view"))
     db.commit()
     return None
 
