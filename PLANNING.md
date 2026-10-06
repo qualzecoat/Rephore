@@ -124,6 +124,8 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
     memakai hybrid keyword + semantik (fallback keyword bila gagal)
   - Testimoni "berhasil" dibatasi 1x per user (ditegakkan di backend)
 - **Fase 5** — testimoni like/berhasil + histori user + hardening deploy VPS
+  - Tambahan: tombol hapus jadwal (muncul setelah jadwal dinonaktifkan),
+    endpoint `DELETE /ai/schedules/{id}`
 
 ## 10. Keputusan terbuka
 
