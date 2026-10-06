@@ -1,0 +1,21 @@
+# Node
+node_modules/
+.next/
+out/
+dist/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Misc
+.DS_Store
+*.log
