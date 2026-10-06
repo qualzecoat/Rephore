@@ -16,6 +16,10 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import settings
 from app.db.base import Base
+from app.models import ai as _ai_model  # noqa: F401 — daftarkan semua model
+from app.models import device as _device_model  # noqa: F401 — agar FK ter-resolve
+from app.models import knowledge as _knowledge_model  # noqa: F401
+from app.models import user as _user_model  # noqa: F401 — agar FK ter-resolve
 from app.models.ai import AiJob, AiProvider, AiSchedule
 from app.models.knowledge import Knowledge
 from app.services.ai import (
@@ -126,6 +130,7 @@ def process_pending(db) -> int:
 
 
 def check_schedules(db) -> int:
+    """Satu jadwal yang sudah waktunya -> tepat satu job untuk hari ini."""
     now = datetime.now()
     today = date.today()
     made = 0
@@ -137,30 +142,25 @@ def check_schedules(db) -> int:
             continue
         if now.hour < s.run_hour:
             continue
-        topics = [t.strip() for t in (s.topics or "").split(",") if t.strip()]
-        if not topics:
-            topics = [s.subcategory or ""]
-        for i in range(max(1, s.knowledge_per_day)):
-            topic = topics[i % len(topics)]
-            db.add(
-                AiJob(
-                    type="scheduled",
-                    provider_id=s.provider_id,
-                    model=s.model,
-                    brand=s.brand,
-                    phone_model=s.phone_model,
-                    category=s.category,
-                    subcategory=topic or None,
-                    topic=topic or None,
-                    status="pending",
-                    created_by=s.created_by,
-                )
+        db.add(
+            AiJob(
+                type="scheduled",
+                provider_id=s.provider_id,
+                model=s.model,
+                brand=s.brand,
+                phone_model=s.phone_model,
+                category=s.category,
+                subcategory=s.topic or None,
+                topic=s.topic or None,
+                status="pending",
+                created_by=s.created_by,
             )
-            made += 1
+        )
         s.last_run_date = today
         db.commit()
+        made += 1
         print(
-            f"[worker] jadwal '{s.name}': {made} job dibuat untuk hari ini",
+            f"[worker] jadwal '{s.name}': 1 job dibuat untuk hari ini",
             flush=True,
         )
     return made

@@ -79,7 +79,7 @@ Per job (request manual / scheduler otomatis) bisa dipilih provider + model
 yang berbeda, plus fallback bila provider utama gagal.
 
 Setting detail per job: sumber daftar HP, template prompt per kategori, bahasa
-output, jadwal (misal 2–3 knowledge/hari), aturan anti-duplikat, retry policy.
+output, jadwal (1 jadwal = 1 topik per hari), aturan anti-duplikat, retry policy.
 
 ## 7. Deteksi perangkat (frontend, WebUSB)
 
@@ -111,12 +111,15 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
 - **Fase 3** — pencarian (keyword + ranking) + deteksi perangkat WebUSB + histori ✅ (selesai 2026-10-06)
   - Catatan: pencarian semantik pgvector sudah disiapkan kolomnya, tapi embedding
     baru diisi di Fase 4 (butuh AI provider untuk generate embedding)
-- **Fase 4** — AI provider generik + request manual + scheduler otomatis ✅ (selesai 2026-10-06)
+- **Fase 4** — AI provider generik + request manual + scheduler otomatis ✅ (selesai 2026-10-06, revisi konsep jadwal 2026-10-06)
   - Provider OpenAI-compatible: nama, base URL, API key, tombol ambil daftar model
     dari base URL, default model, model embedding opsional, temperature, max tokens
   - Request manual: admin pilih provider + target HP, worker proses ±1 menit,
     hasil langsung masuk knowledge dengan tag belum direview
-  - Scheduler: N knowledge/hari jam tertentu, topik diputar dari daftar
+  - Scheduler: **1 jadwal = 1 topik per hari** di jam yang ditentukan. Alur tiap
+    jadwal: AI riset info HP dulu (lengkap dengan kode-kode) → buat artikel
+    via parser → rilis sebagai knowledge baru. Mau 2–3 artikel/hari = buat
+    2–3 jadwal
   - Worker mengisi embedding bila provider punya embedding_model; pencarian
     memakai hybrid keyword + semantik (fallback keyword bila gagal)
   - Testimoni "berhasil" dibatasi 1x per user (ditegakkan di backend)

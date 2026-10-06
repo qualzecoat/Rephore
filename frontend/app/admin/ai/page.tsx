@@ -36,8 +36,7 @@ type Schedule = {
   brand: string | null;
   phone_model: string | null;
   category: string | null;
-  topics: string;
-  knowledge_per_day: number;
+  topic: string;
   run_hour: number;
   is_active: boolean;
   last_run_date: string | null;
@@ -69,13 +68,13 @@ export default function AdminAiPage() {
   const [jSub, setJSub] = useState("");
   const [jTopic, setJTopic] = useState("");
 
-  // form schedule
+  // form schedule — 1 jadwal = 1 topik per hari
   const [sName, setSName] = useState("");
   const [sProvider, setSProvider] = useState("");
   const [sBrand, setSBrand] = useState("");
+  const [sModel, setSModel] = useState("");
   const [sCat, setSCat] = useState("software");
-  const [sTopics, setSTopics] = useState("bypass FRP, flash firmware, ganti LCD");
-  const [sPerDay, setSPerDay] = useState(2);
+  const [sTopic, setSTopic] = useState("root");
   const [sHour, setSHour] = useState(2);
 
   function load() {
@@ -182,9 +181,9 @@ export default function AdminAiPage() {
           name: sName,
           provider_id: sProvider,
           brand: sBrand || null,
+          phone_model: sModel || null,
           category: sCat || null,
-          topics: sTopics,
-          knowledge_per_day: sPerDay,
+          topic: sTopic,
           run_hour: sHour,
         }),
       });
@@ -287,10 +286,16 @@ export default function AdminAiPage() {
       </ul>
 
       <h2 style={{ marginTop: "2rem" }}>Jadwal otomatis</h2>
+      <p style={{ color: "#666", fontSize: "0.85rem" }}>
+        1 jadwal = 1 topik yang dirilis tiap hari di jam yang ditentukan.
+        Mau 2–3 artikel per hari? Buat 2–3 jadwal dengan topik berbeda.
+      </p>
       <ul>
         {schedules.map((s) => (
           <li key={s.id} style={{ marginBottom: "0.4rem" }}>
-            <b>{s.name}</b> — {s.knowledge_per_day}x/hari jam {s.run_hour}:00
+            <b>{s.name}</b> — tiap hari jam {s.run_hour}:00, topik: {s.topic || "-"}
+            {[s.brand, s.phone_model, s.category].filter(Boolean).length > 0 &&
+              ` (${[s.brand, s.phone_model, s.category].filter(Boolean).join(" · ")})`}
             {s.last_run_date && <span style={{ color: "#666" }}> (terakhir: {s.last_run_date})</span>}{" "}
             {s.is_active ? "✅" : "⏸️"}
             <button onClick={() => toggleSchedule(s)} style={{ marginLeft: "0.5rem" }}>
@@ -301,20 +306,20 @@ export default function AdminAiPage() {
       </ul>
       <h3>Tambah jadwal</h3>
       <form onSubmit={submitSchedule}>
-        <input placeholder="Nama jadwal" value={sName} onChange={(e) => setSName(e.target.value)} required style={inputStyle} />
+        <input placeholder="Nama jadwal (misal Root harian)" value={sName} onChange={(e) => setSName(e.target.value)} required style={inputStyle} />
         <select value={sProvider} onChange={(e) => setSProvider(e.target.value)} required style={inputStyle}>
           <option value="">Pilih provider</option>
           {providers.filter((p) => p.is_active).map((p) => (
             <option key={p.id} value={p.id}>{p.name}</option>
           ))}
         </select>
-        <input placeholder="Brand target" value={sBrand} onChange={(e) => setSBrand(e.target.value)} style={inputStyle} />
+        <input placeholder="Brand target (misal Xiaomi)" value={sBrand} onChange={(e) => setSBrand(e.target.value)} style={inputStyle} />
+        <input placeholder="Model HP target (opsional)" value={sModel} onChange={(e) => setSModel(e.target.value)} style={inputStyle} />
         <select value={sCat} onChange={(e) => setSCat(e.target.value)} style={inputStyle}>
           <option value="software">software</option>
           <option value="hardware">hardware</option>
         </select>
-        <input placeholder="Topik dipisah koma" value={sTopics} onChange={(e) => setSTopics(e.target.value)} style={{ ...inputStyle, width: "18rem" }} />
-        <label style={inputStyle}>/hari: <input type="number" min={1} max={10} value={sPerDay} onChange={(e) => setSPerDay(Number(e.target.value))} style={{ width: "3rem" }} /></label>
+        <input placeholder="Topik (misal root)" value={sTopic} onChange={(e) => setSTopic(e.target.value)} required style={inputStyle} />
         <label style={inputStyle}>Jam: <input type="number" min={0} max={23} value={sHour} onChange={(e) => setSHour(Number(e.target.value))} style={{ width: "3rem" }} /></label>
         <button type="submit" style={inputStyle}>Simpan jadwal</button>
       </form>

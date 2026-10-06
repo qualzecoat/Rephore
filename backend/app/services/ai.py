@@ -109,7 +109,12 @@ def build_knowledge_prompt(
             "role": "user",
             "content": (
                 f"Buatkan tutorial servis untuk: {target}\n"
-                f"Fokus: {focus}\n\n{BBCODE_SPEC}\n\n"
+                f"Fokus: {focus}\n\n"
+                "LANGKAH PERTAMA: cari tahu informasi lengkap HP ini — "
+                "nama-nama pasar, SEMUA kode/varian (misal SM-A546B, SM-A546E), "
+                "dan cantumkan semuanya di atribut codes pada tag [meta]. "
+                "Jangan menulis tutorial sebelum info HP-nya lengkap.\n\n"
+                f"{BBCODE_SPEC}\n\n"
                 "Output HANYA BBCode di atas, tanpa teks pembuka/penutup."
             ),
         },

@@ -11,6 +11,7 @@ from sqlalchemy.exc import OperationalError
 from .api import ai, auth, history, knowledge, search, users
 from .core.config import settings
 from .db.base import Base
+from .db.migrate import run_migrations
 from .db.session import engine
 from .models import ai as _ai_model  # noqa: F401 — daftarkan model
 from .models import device as _device_model  # noqa: F401 — daftarkan model
@@ -26,6 +27,7 @@ async def wait_for_db(retries: int = 30, delay: float = 2.0) -> None:
                 # butuh untuk kolom embedding pencarian semantik
                 conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))
             Base.metadata.create_all(bind=engine)
+            run_migrations(engine)
             return
         except OperationalError:
             await asyncio.sleep(delay)

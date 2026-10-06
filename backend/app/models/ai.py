@@ -60,7 +60,12 @@ class AiJob(Base):
 
 
 class AiSchedule(Base):
-    """Jadwal generate otomatis, misal 2-3 knowledge per hari."""
+    """Satu jadwal = satu topik yang dirilis tiap hari di jam tertentu.
+
+    Contoh: jadwal "Root harian" -> tiap hari jam 02:00 AI mencari info HP
+    (lengkap dengan kode-kode), membuat artikel bertopik "root", lalu merilisnya
+    sebagai knowledge baru. Mau 2-3 artikel/hari = buat 2-3 jadwal.
+    """
 
     __tablename__ = "ai_schedules"
 
@@ -73,10 +78,9 @@ class AiSchedule(Base):
     brand: Mapped[str | None] = mapped_column(String(64), nullable=True)
     phone_model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     category: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    # daftar topik dipisah koma, diputar tiap generate
-    topics: Mapped[str] = mapped_column(Text, default="")
-    knowledge_per_day: Mapped[int] = mapped_column(Integer, default=2)
-    # jam (0-23) kapan jadwal mulai jalan hari itu
+    # satu topik per jadwal, misal "root", "bypass FRP", "ganti LCD"
+    topic: Mapped[str] = mapped_column(Text, default="")
+    # jam (0-23) kapan jadwal jalan tiap hari
     run_hour: Mapped[int] = mapped_column(Integer, default=2)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_run_date: Mapped[date | None] = mapped_column(Date, nullable=True)

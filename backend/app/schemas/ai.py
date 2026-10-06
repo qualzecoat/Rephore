@@ -90,8 +90,8 @@ class ScheduleIn(BaseModel):
     brand: str | None = None
     phone_model: str | None = None
     category: str | None = None
-    topics: str = ""
-    knowledge_per_day: int = 2
+    # satu topik per jadwal, misal "root"
+    topic: str = ""
     run_hour: int = 2
     is_active: bool = True
 
@@ -103,8 +103,7 @@ class ScheduleUpdate(BaseModel):
     brand: str | None = None
     phone_model: str | None = None
     category: str | None = None
-    topics: str | None = None
-    knowledge_per_day: int | None = None
+    topic: str | None = None
     run_hour: int | None = None
     is_active: bool | None = None
 
@@ -119,8 +118,7 @@ class ScheduleOut(BaseModel):
     brand: str | None
     phone_model: str | None
     category: str | None
-    topics: str
-    knowledge_per_day: int
+    topic: str
     run_hour: int
     is_active: bool
     last_run_date: date | None
