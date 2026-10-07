@@ -37,9 +37,14 @@ export default function KnowledgeDetailPage() {
         setD(det);
         // catat histori pemakaian
         api(`/knowledge/${params.id}/view`, { method: "POST" }).catch(() => {});
-        // cek apakah user sudah menandai berhasil (1x per user)
-        api<{ success_given: boolean }>(`/knowledge/${params.id}/my-feedback`)
-          .then((f) => setVotedSuccess(f.success_given))
+        // cek testimoni yang sudah diberikan (1x per user)
+        api<{ success_given: boolean; like_given: boolean }>(
+          `/knowledge/${params.id}/my-feedback`
+        )
+          .then((f) => {
+            setVotedSuccess(f.success_given);
+            setVotedLike(f.like_given);
+          })
           .catch(() => {});
       })
       .catch((e) => setError(e instanceof Error ? e.message : "Gagal memuat"));

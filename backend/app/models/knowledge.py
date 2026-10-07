@@ -49,7 +49,7 @@ class Knowledge(Base):
 
 
 class KnowledgeFeedback(Base):
-    """Catatan siapa memberi testimoni apa — 'berhasil' dibatasi 1x per user."""
+    """Catatan siapa memberi testimoni apa — 'berhasil' & 'like' dibatasi 1x per user."""
 
     __tablename__ = "knowledge_feedbacks"
     __table_args__ = (
@@ -59,6 +59,13 @@ class KnowledgeFeedback(Base):
             "knowledge_id",
             unique=True,
             postgresql_where=text("kind = 'success'"),
+        ),
+        Index(
+            "uq_feedback_like_once",
+            "user_id",
+            "knowledge_id",
+            unique=True,
+            postgresql_where=text("kind = 'like'"),
         ),
     )
 

@@ -39,3 +39,11 @@ def run_migrations(engine: Engine) -> None:
         conn.execute(
             text("UPDATE ai_schedules SET dedup_days = 30 WHERE dedup_days IS NULL")
         )
+        # Batas like 1x per user (2026-10-07) — index parsial seperti success
+        conn.execute(
+            text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS uq_feedback_like_once "
+                "ON knowledge_feedbacks (user_id, knowledge_id) "
+                "WHERE kind = 'like'"
+            )
+        )

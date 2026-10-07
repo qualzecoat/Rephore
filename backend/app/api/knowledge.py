@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import case, or_, select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from ..db.session import get_db
@@ -219,34 +220,41 @@ def feedback(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Testimoni user: like atau tombol berhasil (berhasil = 1x per user)."""
+    """Testimoni user: like atau tombol berhasil (masing-masing 1x per user)."""
     k = db.get(Knowledge, knowledge_id)
     if k is None:
         raise HTTPException(status_code=404, detail="Knowledge tidak ditemukan")
-    if data.type == "like":
-        k.like_count += 1
-    elif data.type == "success":
-        exists = db.scalar(
-            select(KnowledgeFeedback).where(
-                KnowledgeFeedback.user_id == user.id,
-                KnowledgeFeedback.knowledge_id == k.id,
-                KnowledgeFeedback.kind == "success",
-            )
-        )
-        if exists:
-            raise HTTPException(
-                status_code=400,
-                detail="Kamu sudah menandai berhasil untuk knowledge ini",
-            )
-        db.add(
-            KnowledgeFeedback(user_id=user.id, knowledge_id=k.id, kind="success")
-        )
-        k.success_count += 1
-    else:
+    if data.type not in ("like", "success"):
         raise HTTPException(
             status_code=400, detail="Type harus 'like' atau 'success'"
         )
-    db.commit()
+    exists = db.scalar(
+        select(KnowledgeFeedback).where(
+            KnowledgeFeedback.user_id == user.id,
+            KnowledgeFeedback.knowledge_id == k.id,
+            KnowledgeFeedback.kind == data.type,
+        )
+    )
+    if exists:
+        label = "like" if data.type == "like" else "menandai berhasil"
+        raise HTTPException(
+            status_code=400,
+            detail=f"Kamu sudah memberi {label} untuk knowledge ini",
+        )
+    db.add(KnowledgeFeedback(user_id=user.id, knowledge_id=k.id, kind=data.type))
+    if data.type == "like":
+        k.like_count += 1
+    else:
+        k.success_count += 1
+    try:
+        db.commit()
+    except IntegrityError:
+        # balapan request bersamaan — index unik di DB yang menang
+        db.rollback()
+        raise HTTPException(
+            status_code=400,
+            detail="Kamu sudah memberi testimoni untuk knowledge ini",
+        )
     return {"like_count": k.like_count, "success_count": k.success_count}
 
 
@@ -256,12 +264,14 @@ def my_feedback(
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    """Apakah user ini sudah menandai berhasil untuk knowledge ini."""
-    fb = db.scalar(
-        select(KnowledgeFeedback).where(
-            KnowledgeFeedback.user_id == user.id,
-            KnowledgeFeedback.knowledge_id == knowledge_id,
-            KnowledgeFeedback.kind == "success",
-        )
+    """Testimoni apa saja yang sudah diberikan user ini untuk knowledge ini."""
+    kinds = set(
+        db.scalars(
+            select(KnowledgeFeedback.kind).where(
+                KnowledgeFeedback.user_id == user.id,
+                KnowledgeFeedback.knowledge_id == knowledge_id,
+                KnowledgeFeedback.kind.in_(["like", "success"]),
+            )
+        ).all()
     )
-    return {"success_given": fb is not None}
+    return {"success_given": "success" in kinds, "like_given": "like" in kinds}
