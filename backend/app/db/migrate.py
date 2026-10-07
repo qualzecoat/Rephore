@@ -47,3 +47,16 @@ def run_migrations(engine: Engine) -> None:
                 "WHERE kind = 'like'"
             )
         )
+        # Thread balasan laporan (2026-10-07)
+        conn.execute(
+            text(
+                "ALTER TABLE knowledge_reports "
+                "ADD COLUMN IF NOT EXISTS replies_closed BOOLEAN"
+            )
+        )
+        conn.execute(
+            text(
+                "UPDATE knowledge_reports SET replies_closed = false "
+                "WHERE replies_closed IS NULL"
+            )
+        )

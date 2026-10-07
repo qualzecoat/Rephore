@@ -77,9 +77,24 @@ class ReportOut(BaseModel):
     kind: str
     message: str
     status: str
+    replies_closed: bool = False
+    replies_count: int = 0
     created_at: datetime
 
 
 class ReportUpdate(BaseModel):
     # "open" | "resolved"
     status: str | None = None
+    replies_closed: bool | None = None
+
+
+class ReplyIn(BaseModel):
+    message: str
+
+
+class ReplyOut(BaseModel):
+    id: str
+    username: str
+    role: str
+    message: str
+    created_at: datetime

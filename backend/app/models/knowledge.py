@@ -98,4 +98,22 @@ class KnowledgeReport(Base):
     message: Mapped[str] = mapped_column(Text)
     # "open" | "resolved"
     status: Mapped[str] = mapped_column(String(16), default="open")
+    # admin bisa menutup balasan — setelah ditutup tidak ada yang bisa membalas
+    replies_closed: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class ReportReply(Base):
+    """Balasan dalam thread sebuah laporan/saran."""
+
+    __tablename__ = "report_replies"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    report_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("knowledge_reports.id")
+    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    message: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

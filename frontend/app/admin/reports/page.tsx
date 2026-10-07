@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type Me } from "@/lib/api";
 import Navbar from "@/components/Navbar";
+import ReportThread from "@/components/ReportThread";
 
 type Report = {
   id: string;
@@ -14,6 +15,8 @@ type Report = {
   kind: string;
   message: string;
   status: string;
+  replies_closed: boolean;
+  replies_count: number;
   created_at: string;
 };
 
@@ -29,6 +32,7 @@ export default function AdminReportsPage() {
   const [fStatus, setFStatus] = useState("");
   const [fKind, setFKind] = useState("");
   const [error, setError] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function load() {
     const params = new URLSearchParams();
@@ -70,6 +74,18 @@ export default function AdminReportsPage() {
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menghapus");
+    }
+  }
+
+  async function toggleCloseReplies(r: Report) {
+    try {
+      await api(`/reports/${r.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ replies_closed: !r.replies_closed }),
+      });
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal mengubah status balasan");
     }
   }
 
@@ -126,14 +142,32 @@ export default function AdminReportsPage() {
               {" · "}oleh <b>{r.username}</b>
               {" · "}{new Date(r.created_at).toLocaleString("id-ID")}
             </div>
-            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem", flexWrap: "wrap" }}>
               {r.status === "open" ? (
                 <button onClick={() => setStatus(r, "resolved")}>Tandai selesai</button>
               ) : (
                 <button onClick={() => setStatus(r, "open")}>Buka lagi</button>
               )}
+              <button
+                onClick={() =>
+                  setExpandedId(expandedId === r.id ? null : r.id)
+                }
+              >
+                💬 Balasan ({r.replies_count})
+                {expandedId === r.id ? " ▲" : " ▼"}
+              </button>
+              <button onClick={() => toggleCloseReplies(r)}>
+                {r.replies_closed ? "🔓 Buka balasan" : "🔒 Tutup balasan"}
+              </button>
               <button onClick={() => doDelete(r)}>Hapus</button>
             </div>
+            {expandedId === r.id && (
+              <ReportThread
+                reportId={r.id}
+                isAdmin={true}
+                repliesClosed={r.replies_closed}
+              />
+            )}
           </li>
         ))}
       </ul>

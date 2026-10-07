@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type Me } from "@/lib/api";
 import Navbar from "@/components/Navbar";
+import ReportThread from "@/components/ReportThread";
 
 type Report = {
   id: string;
@@ -14,6 +15,8 @@ type Report = {
   kind: string;
   message: string;
   status: string;
+  replies_closed: boolean;
+  replies_count: number;
   created_at: string;
 };
 
@@ -32,6 +35,7 @@ export default function MyReportsPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [fStatus, setFStatus] = useState("");
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   function load() {
     const params = new URLSearchParams();
@@ -105,6 +109,19 @@ export default function MyReportsPage() {
               <Link href={`/knowledge/${r.knowledge_id}`}>{r.knowledge_title}</Link>
               {" · "}dikirim {new Date(r.created_at).toLocaleString("id-ID")}
             </div>
+            <button
+              onClick={() => setExpandedId(expandedId === r.id ? null : r.id)}
+              style={{ marginTop: "0.5rem" }}
+            >
+              💬 Balasan ({r.replies_count}){expandedId === r.id ? " ▲" : " ▼"}
+            </button>
+            {expandedId === r.id && (
+              <ReportThread
+                reportId={r.id}
+                isAdmin={me.role === "admin"}
+                repliesClosed={r.replies_closed}
+              />
+            )}
           </li>
         ))}
       </ul>
