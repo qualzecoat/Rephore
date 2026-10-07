@@ -148,8 +148,21 @@ export default function AdminAiPage() {
 
   async function deleteProvider(id: string) {
     if (!confirm("Hapus provider ini?")) return;
-    await api(`/ai/providers/${id}`, { method: "DELETE" });
-    load();
+    setError("");
+    try {
+      await api(`/ai/providers/${id}`, { method: "DELETE" });
+      load();
+    } catch (e) {
+      let msg = "Gagal menghapus provider";
+      if (e instanceof Error) {
+        try {
+          msg = JSON.parse(e.message).detail ?? e.message;
+        } catch {
+          msg = e.message;
+        }
+      }
+      setError(msg);
+    }
   }
 
   async function submitJob(e: React.FormEvent) {

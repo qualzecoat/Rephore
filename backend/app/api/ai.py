@@ -1,7 +1,7 @@
 """AI provider generik, job generate manual, dan jadwal otomatis — khusus admin."""
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from ..db.session import get_db
@@ -89,6 +89,18 @@ def delete_provider(
     p = db.get(AiProvider, provider_id)
     if p is None:
         raise HTTPException(status_code=404, detail="Provider tidak ditemukan")
+    n_sched = db.scalar(select(func.count()).where(AiSchedule.provider_id == p.id))
+    if n_sched:
+        raise HTTPException(
+            status_code=400,
+            detail=(
+                f"Provider masih dipakai oleh {n_sched} jadwal. "
+                "Hapus jadwalnya dulu sebelum menghapus provider."
+            ),
+        )
+    # job hanya riwayat pemrosesan — ikut dihapus; artikel knowledge yang
+    # sudah ter-generate tetap ada
+    db.query(AiJob).filter(AiJob.provider_id == p.id).delete()
     db.delete(p)
     db.commit()
     return None
