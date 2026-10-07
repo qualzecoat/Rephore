@@ -150,6 +150,11 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
   - Laporan & saran perbaikan dari user (`knowledge_reports`,
     `POST /reports/knowledge/{id}`, halaman `/admin/reports`)
   - Anti-duplikat scheduler; like dibatasi 1x per user di backend
+- **Log watcher v1** (2026-10-07): backend & worker mencatat error ke
+  `error_events` (didup per signature), frontend melaporkan JS error
+  (dibatasi 1x/menit); worker menganalisis insiden via AI tiap 24 jam
+  (atau manual) → saran tersimpan di `ai_suggestions`, dikelola di
+  halaman `/admin/saran-ai`
 
 ## 10. Keputusan terbuka
 

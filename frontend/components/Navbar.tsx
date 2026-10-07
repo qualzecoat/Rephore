@@ -18,6 +18,36 @@ export default function Navbar() {
       .catch(() => setMe(null));
   }, []);
 
+  // v1 log watcher: laporkan JS error ke backend (dibatasi 1x/menit)
+  useEffect(() => {
+    if (!me) return;
+    let lastSent = 0;
+    function send(message: string, stack?: string) {
+      const now = Date.now();
+      if (now - lastSent < 60000) return;
+      lastSent = now;
+      api("/logwatch/errors", {
+        method: "POST",
+        body: JSON.stringify({
+          message: message.slice(0, 500),
+          stack: (stack ?? "").slice(0, 2000),
+        }),
+      }).catch(() => {});
+    }
+    const onError = (e: ErrorEvent) =>
+      send(e.message || "Unknown error", (e as any).error?.stack);
+    const onRejection = (e: PromiseRejectionEvent) => {
+      const r = e.reason as any;
+      send(String(r?.message ?? r ?? "Unhandled rejection").slice(0, 500), r?.stack);
+    };
+    window.addEventListener("error", onError);
+    window.addEventListener("unhandledrejection", onRejection);
+    return () => {
+      window.removeEventListener("error", onError);
+      window.removeEventListener("unhandledrejection", onRejection);
+    };
+  }, [me]);
+
   function logout() {
     clearToken();
     router.push("/login");
@@ -56,6 +86,9 @@ export default function Navbar() {
             </Link>
             <Link href="/admin/reports" style={linkStyle}>
               Laporan
+            </Link>
+            <Link href="/admin/saran-ai" style={linkStyle}>
+              Saran AI
             </Link>
             <Link href="/admin/history" style={linkStyle}>
               Histori

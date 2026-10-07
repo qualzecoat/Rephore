@@ -22,16 +22,26 @@ from app.models import knowledge as _knowledge_model  # noqa: F401
 from app.models import user as _user_model  # noqa: F401 — agar FK ter-resolve
 from app.models.ai import AiJob, AiProvider, AiSchedule
 from app.models.knowledge import Knowledge
+from app.models.logwatch import AiSuggestion, ErrorEvent, LogAnalysisRun
 from app.services.ai import (
     build_knowledge_prompt,
     chat_complete,
     embed_text,
     embedding_text_for,
 )
+from app.services.logwatch import (
+    build_log_analysis_prompt,
+    exception_signature,
+    parse_suggestions,
+    record_error_event,
+)
 from app.services.knowledge import apply_parsed
 from app.services.parser import parse_bbcode
 
 POLL_SECONDS = int(os.environ.get("WORKER_POLL_SECONDS", "60"))
+# v1 log watcher: digest analisis tiap N jam (0 = hanya manual)
+LOG_ANALYSIS_INTERVAL_HOURS = int(os.environ.get("LOG_ANALYSIS_INTERVAL_HOURS", "24"))
+LOG_ANALYSIS_MAX_INCIDENTS = 10
 
 
 def wait_for_db() -> None:
@@ -217,6 +227,167 @@ def check_schedules(db) -> int:
     return made
 
 
+def run_log_analysis(db, run) -> None:
+    """Jalankan satu analisis log: kumpulkan insiden -> minta saran ke AI."""
+    run.status = "running"
+    db.commit()
+    now = datetime.now()
+    try:
+        provider = db.scalar(
+            select(AiProvider)
+            .where(AiProvider.is_active == True)
+            .order_by(AiProvider.created_at)
+            .limit(1)
+        )
+        if provider is None or not provider.default_model:
+            raise RuntimeError("tidak ada AI provider aktif dengan default model")
+        last_done = db.scalar(
+            select(LogAnalysisRun)
+            .where(LogAnalysisRun.status == "done")
+            .order_by(LogAnalysisRun.finished_at.desc())
+            .limit(1)
+        )
+        since = (
+            last_done.finished_at
+            if last_done and last_done.finished_at
+            else now - timedelta(days=7)
+        )
+        incidents = db.scalars(
+            select(ErrorEvent)
+            .where(ErrorEvent.last_seen >= since)
+            .order_by(ErrorEvent.count.desc())
+            .limit(LOG_ANALYSIS_MAX_INCIDENTS)
+        ).all()
+        run.incidents_found = len(incidents)
+        if not incidents:
+            run.status = "done"
+            run.finished_at = now
+            db.commit()
+            print("[worker] analisis log: tidak ada insiden baru", flush=True)
+            return
+        messages = build_log_analysis_prompt(
+            [
+                {
+                    "service": e.service,
+                    "signature": e.signature,
+                    "count": e.count,
+                    "first_seen": e.first_seen.isoformat(),
+                    "last_seen": e.last_seen.isoformat(),
+                    "message": e.message or "-",
+                    "traceback": (e.traceback or "-")[:2000],
+                }
+                for e in incidents
+            ]
+        )
+        raw = chat_complete(
+            provider.base_url,
+            provider.api_key,
+            provider.default_model,
+            messages,
+            temperature=0.3,
+            max_tokens=4000,
+        )
+        suggestions = parse_suggestions(raw)
+        made = 0
+        for s in suggestions:
+            exists = db.scalar(
+                select(AiSuggestion).where(
+                    AiSuggestion.signature == s["signature"],
+                    AiSuggestion.status == "open",
+                )
+            )
+            if exists:
+                continue
+            ev = next(
+                (e for e in incidents if e.signature == s["signature"]), incidents[0]
+            )
+            db.add(
+                AiSuggestion(
+                    signature=s["signature"],
+                    service=ev.service,
+                    severity=s["severity"],
+                    probable_cause=s["probable_cause"],
+                    suggested_fix=s["suggested_fix"],
+                    status="open",
+                )
+            )
+            made += 1
+        if not suggestions:
+            # output AI tidak terparse — simpan mentah agar tidak hilang
+            db.add(
+                AiSuggestion(
+                    signature=f"digest-raw@{run.id[:8]}",
+                    service="worker",
+                    severity="medium",
+                    probable_cause="Output AI tidak dalam format JSON yang diharapkan.",
+                    suggested_fix=raw[:4000],
+                    status="open",
+                )
+            )
+            made += 1
+        run.suggestions_created = made
+        run.status = "done"
+        run.finished_at = now
+        db.commit()
+        print(
+            f"[worker] analisis log selesai: {len(incidents)} insiden, "
+            f"{made} saran baru",
+            flush=True,
+        )
+    except Exception as e:
+        db.rollback()
+        run.status = "error"
+        run.error = str(e)[:1000]
+        run.finished_at = datetime.now()
+        db.commit()
+        print(f"[worker] analisis log gagal: {e}", flush=True)
+
+
+def maybe_log_analysis(db) -> None:
+    """Proses run manual yang pending, atau buat digest terjadwal bila waktunya."""
+    run = db.scalar(
+        select(LogAnalysisRun)
+        .where(LogAnalysisRun.status == "pending")
+        .order_by(LogAnalysisRun.created_at)
+        .limit(1)
+    )
+    if run is None and LOG_ANALYSIS_INTERVAL_HOURS > 0:
+        last_done = db.scalar(
+            select(LogAnalysisRun)
+            .where(LogAnalysisRun.status == "done")
+            .order_by(LogAnalysisRun.finished_at.desc())
+            .limit(1)
+        )
+        due = True
+        if last_done and last_done.finished_at:
+            due = datetime.now() - last_done.finished_at >= timedelta(
+                hours=LOG_ANALYSIS_INTERVAL_HOURS
+            )
+        if due:
+            run = LogAnalysisRun(trigger="scheduled", status="pending")
+            db.add(run)
+            db.commit()
+    if run is not None:
+        run_log_analysis(db, run)
+
+
+def _record_worker_error(SessionLocal, exc: BaseException) -> None:
+    try:
+        db = SessionLocal()
+        try:
+            record_error_event(
+                db,
+                service="worker",
+                signature=exception_signature(exc),
+                message=str(exc),
+                tb=traceback.format_exc(),
+            )
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+
 def main() -> None:
     engine = wait_for_db()
     SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -227,6 +398,7 @@ def main() -> None:
             try:
                 n_jobs = process_pending(db)
                 n_sched = check_schedules(db)
+                maybe_log_analysis(db)
                 if n_jobs or n_sched:
                     print(
                         f"[worker] siklus selesai: {n_jobs} job, {n_sched} job terjadwal",
@@ -237,6 +409,7 @@ def main() -> None:
         except Exception as e:
             print(f"[worker] error siklus: {e}", flush=True)
             traceback.print_exc()
+            _record_worker_error(SessionLocal, e)
         time.sleep(POLL_SECONDS)
 
 
