@@ -17,7 +17,7 @@ class AiProvider(Base):
     )
     name: Mapped[str] = mapped_column(String(128))
     base_url: Mapped[str] = mapped_column(String(512))
-    # catatan: disimpan plain di v1 — enkripsi at-rest jadi PR berikutnya
+    # disimpan terenkripsi (Fernet); didekripsi hanya saat dipakai memanggil AI
     api_key: Mapped[str] = mapped_column(String(512))
     default_model: Mapped[str] = mapped_column(String(128), default="")
     embedding_model: Mapped[str | None] = mapped_column(String(128), nullable=True)

@@ -29,6 +29,7 @@ from app.services.ai import (
     embed_text,
     embedding_text_for,
 )
+from app.services.crypto import decrypt_api_key
 from app.services.logwatch import (
     build_log_analysis_prompt,
     exception_signature,
@@ -49,6 +50,10 @@ def wait_for_db() -> None:
         try:
             engine = create_engine(settings.database_url, pool_pre_ping=True)
             Base.metadata.create_all(bind=engine)
+            # samakan dengan backend: enkripsi api_key plaintext yang tersisa, dll.
+            from app.db.migrate import run_migrations
+
+            run_migrations(engine)
             return engine
         except OperationalError:
             time.sleep(2)
@@ -59,6 +64,10 @@ def run_job(db, job: AiJob) -> None:
     provider = db.get(AiProvider, job.provider_id)
     if provider is None or not provider.is_active:
         raise RuntimeError("Provider tidak ditemukan / tidak aktif")
+    try:
+        api_key = decrypt_api_key(provider.api_key)
+    except ValueError as e:
+        raise RuntimeError(str(e))
     model = job.model or provider.default_model
     if not model:
         raise RuntimeError("Model belum dipilih untuk job ini")
@@ -68,7 +77,7 @@ def run_job(db, job: AiJob) -> None:
     )
     content = chat_complete(
         provider.base_url,
-        provider.api_key,
+        api_key,
         model,
         messages,
         provider.temperature,
@@ -94,7 +103,7 @@ def run_job(db, job: AiJob) -> None:
                 k.category, k.subcategory, k.troubleshooting,
             )
             vec = embed_text(
-                provider.base_url, provider.api_key, provider.embedding_model, text
+                provider.base_url, api_key, provider.embedding_model, text
             )
             if len(vec) == 1536:
                 k.embedding = vec
@@ -241,6 +250,10 @@ def run_log_analysis(db, run) -> None:
         )
         if provider is None or not provider.default_model:
             raise RuntimeError("tidak ada AI provider aktif dengan default model")
+        try:
+            log_api_key = decrypt_api_key(provider.api_key)
+        except ValueError as e:
+            raise RuntimeError(str(e))
         last_done = db.scalar(
             select(LogAnalysisRun)
             .where(LogAnalysisRun.status == "done")
@@ -281,7 +294,7 @@ def run_log_analysis(db, run) -> None:
         )
         raw = chat_complete(
             provider.base_url,
-            provider.api_key,
+            log_api_key,
             provider.default_model,
             messages,
             temperature=0.3,

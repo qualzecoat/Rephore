@@ -19,6 +19,9 @@ services:
     build: ./backend
     restart: unless-stopped
     env_file: ./backend/.env
+    volumes:
+      # master key enkripsi API key (dibuat otomatis bila REPHORE_MASTER_KEY tidak diset)
+      - rephore-secrets:/app/secrets
     depends_on:
       - postgres
       - redis
@@ -31,6 +34,8 @@ services:
       dockerfile: worker/Dockerfile
     restart: unless-stopped
     env_file: ./backend/.env
+    volumes:
+      - rephore-secrets:/app/secrets
     depends_on:
       - postgres
       - redis
@@ -47,3 +52,4 @@ services:
 
 volumes:
   pgdata:
+  rephore-secrets:

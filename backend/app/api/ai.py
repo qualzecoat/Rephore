@@ -19,6 +19,7 @@ from ..schemas.ai import (
     ScheduleUpdate,
 )
 from ..services.ai import fetch_models
+from ..services.crypto import decrypt_api_key, encrypt_api_key
 from .deps import require_admin
 
 router = APIRouter(prefix="/ai", tags=["ai"])
@@ -51,7 +52,9 @@ def list_providers(_: User = Depends(require_admin), db: Session = Depends(get_d
 def create_provider(
     data: ProviderIn, _: User = Depends(require_admin), db: Session = Depends(get_db)
 ):
-    p = AiProvider(**data.model_dump())
+    payload = data.model_dump()
+    payload["api_key"] = encrypt_api_key(data.api_key)
+    p = AiProvider(**payload)
     db.add(p)
     db.commit()
     db.refresh(p)
@@ -69,6 +72,10 @@ def update_provider(
     if p is None:
         raise HTTPException(status_code=404, detail="Provider tidak ditemukan")
     for field, value in data.model_dump(exclude_unset=True).items():
+        if field == "api_key":
+            if not value:
+                continue  # string kosong = jangan ubah key yang sudah ada
+            value = encrypt_api_key(value)
         setattr(p, field, value)
     db.commit()
     db.refresh(p)
@@ -106,7 +113,11 @@ def provider_models(
     if p is None:
         raise HTTPException(status_code=404, detail="Provider tidak ditemukan")
     try:
-        return {"models": fetch_models(p.base_url, p.api_key)}
+        api_key = decrypt_api_key(p.api_key)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    try:
+        return {"models": fetch_models(p.base_url, api_key)}
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Gagal mengambil model: {e}")
 

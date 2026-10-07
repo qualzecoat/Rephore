@@ -60,3 +60,15 @@ def run_migrations(engine: Engine) -> None:
                 "WHERE replies_closed IS NULL"
             )
         )
+        # Enkripsi API key provider at-rest (2026-10-07): enkripsi nilai
+        # plaintext yang masih tersisa. Import di dalam fungsi agar migrate.py
+        # tetap ringan dan tidak ada import cycle.
+        from ..services.crypto import encrypt_api_key, is_encrypted
+
+        rows = conn.execute(text("SELECT id, api_key FROM ai_providers")).all()
+        for pid, api_key in rows:
+            if api_key and not is_encrypted(api_key):
+                conn.execute(
+                    text("UPDATE ai_providers SET api_key = :k WHERE id = :id"),
+                    {"k": encrypt_api_key(api_key), "id": pid},
+                )

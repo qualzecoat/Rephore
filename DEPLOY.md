@@ -39,6 +39,14 @@ CORS_ORIGINS=https://rephore.contoh.com
 
 > `JWT_SECRET` wajib diganti dengan string acak yang panjang. Jangan pakai
 > nilai dari `.env.example`.
+>
+> **Master key enkripsi**: API key provider AI disimpan terenkripsi di database
+> memakai master key (`REPHORE_MASTER_KEY`). Bila tidak diset, master key dibuat
+> otomatis dan disimpan di Docker volume `rephore-secrets`. Untuk produksi,
+> disarankan generate satu key sendiri dan set di `backend/.env`, lalu **backup
+> nilainya di tempat aman** — bila master key hilang, semua API key tersimpan
+> tidak bisa didekripsi dan harus dimasukkan ulang. Backup volume
+> `rephore-secrets` bersama backup database.
 
 ## 4. Jalankan
 
@@ -81,6 +89,7 @@ DOMAIN=rephore.contoh.com docker compose -f docker-compose.yml -f docker-compose
 
 ## Catatan keamanan
 
-- API key provider AI disimpan plaintext di database (akan dienkripsi di
-  fase berikutnya). Pastikan akses database hanya dari dalam Docker.
+- API key provider AI disimpan terenkripsi (Fernet) di database; master key ada
+  di env `REPHORE_MASTER_KEY` atau volume `rephore-secrets`. Backup keduanya
+  bersama database.
 - Jangan pernah commit file `.env` yang berisi secret ke git.
