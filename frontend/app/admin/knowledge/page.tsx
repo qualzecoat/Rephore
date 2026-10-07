@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api, type Me } from "@/lib/api";
 import Navbar from "@/components/Navbar";
 
@@ -239,7 +240,9 @@ export default function AdminKnowledgePage() {
         {items.map((k) => (
           <li key={k.id} style={{ borderBottom: "1px solid #ddd", padding: "0.75rem 0" }}>
             <div>
-              <b>{k.title}</b>{" "}
+              <Link href={`/admin/knowledge/${k.id}`} style={{ fontWeight: "bold" }}>
+                {k.title}
+              </Link>{" "}
               {k.tags.map((t) => (
                 <span
                   key={t}

@@ -5,29 +5,14 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, type Me } from "@/lib/api";
 import Navbar from "@/components/Navbar";
+import KnowledgeContent, {
+  type KnowledgeContentData,
+} from "@/components/KnowledgeContent";
 
-type Step = {
-  n: number;
-  instruksi: string;
-  commands: string[];
-  warnings: string[];
-};
-
-type Detail = {
+type Detail = KnowledgeContentData & {
   id: string;
-  title: string;
-  brand: string | null;
-  model: string | null;
-  category: string | null;
-  subcategory: string | null;
-  difficulty: string | null;
-  est_time: string | null;
-  tools: string[];
-  troubleshooting: string | null;
-  tags: string[];
   like_count: number;
   success_count: number;
-  content_json: { steps: Step[] };
 };
 
 export default function KnowledgeDetailPage() {
@@ -85,65 +70,7 @@ export default function KnowledgeDetailPage() {
   return (
     <main style={{ maxWidth: 760, margin: "2rem auto", padding: "0 1rem" }}>
       <Navbar />
-      <h1 style={{ marginBottom: "0.25rem" }}>{d.title}</h1>
-      <p style={{ color: "#666", marginTop: 0 }}>
-        {[d.brand, d.model, d.category, d.subcategory, d.difficulty, d.est_time]
-          .filter(Boolean)
-          .join(" · ")}
-      </p>
-      <p>
-        {d.tags.map((t) => (
-          <span
-            key={t}
-            style={{
-              background: "#eee",
-              padding: "0.2rem 0.6rem",
-              borderRadius: "1rem",
-              fontSize: "0.8rem",
-              marginRight: "0.25rem",
-            }}
-          >
-            {t}
-          </span>
-        ))}
-      </p>
-
-      {d.tools.length > 0 && (
-        <>
-          <h2>Alat yang dibutuhkan</h2>
-          <ul>
-            {d.tools.map((t, i) => (
-              <li key={i}>{t}</li>
-            ))}
-          </ul>
-        </>
-      )}
-
-      <h2>Langkah-langkah</h2>
-      <ol>
-        {d.content_json.steps.map((s) => (
-          <li key={s.n} style={{ marginBottom: "1rem" }}>
-            <p style={{ margin: "0.25rem 0", whiteSpace: "pre-wrap" }}>{s.instruksi}</p>
-            {s.commands.map((c, i) => (
-              <pre key={i} style={{ background: "#1e1e1e", color: "#d4d4d4", padding: "0.5rem", borderRadius: "0.25rem", overflowX: "auto" }}>
-                {c}
-              </pre>
-            ))}
-            {s.warnings.map((w, i) => (
-              <p key={i} style={{ background: "#fef3c7", padding: "0.5rem", borderRadius: "0.25rem" }}>
-                ⚠️ {w}
-              </p>
-            ))}
-          </li>
-        ))}
-      </ol>
-
-      {d.troubleshooting && (
-        <>
-          <h2>Troubleshooting</h2>
-          <p style={{ whiteSpace: "pre-wrap" }}>{d.troubleshooting}</p>
-        </>
-      )}
+      <KnowledgeContent d={d} />
 
       <h2>Testimoni</h2>
       <p style={{ color: "#666", fontSize: "0.9rem" }}>
