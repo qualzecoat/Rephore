@@ -12,7 +12,7 @@ type Knowledge = {
   model: string | null;
   category: string | null;
   status: string;
-  tag: string;
+  tags: string[];
   like_count: number;
   success_count: number;
 };
@@ -138,10 +138,20 @@ export default function AdminKnowledgePage() {
     load();
   }
 
-  async function doDelete(id: string) {
-    if (!confirm("Hapus knowledge ini?")) return;
-    await api(`/knowledge/${id}`, { method: "DELETE" });
-    if (id === editingId) {
+  async function doDelete(k: Knowledge) {
+    const testi = k.like_count + k.success_count;
+    const msg =
+      testi > 0
+        ? `Knowledge ini sudah punya ${k.like_count} suka dan ${k.success_count} testimoni berhasil — menghapusnya sangat disayangkan. Tetap hapus?`
+        : "Hapus knowledge ini?";
+    if (!confirm(msg)) return;
+    try {
+      await api(`/knowledge/${k.id}`, { method: "DELETE" });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal menghapus knowledge");
+      return;
+    }
+    if (k.id === editingId) {
       setEditingId(null);
       setBbcode(TEMPLATE);
       setPreview(null);
@@ -230,17 +240,21 @@ export default function AdminKnowledgePage() {
           <li key={k.id} style={{ borderBottom: "1px solid #ddd", padding: "0.75rem 0" }}>
             <div>
               <b>{k.title}</b>{" "}
-              <span
-                style={{
-                  background: TAG_COLORS[k.tag] ?? "#666",
-                  color: "#fff",
-                  fontSize: "0.75rem",
-                  padding: "0.15rem 0.5rem",
-                  borderRadius: "1rem",
-                }}
-              >
-                {k.tag}
-              </span>
+              {k.tags.map((t) => (
+                <span
+                  key={t}
+                  style={{
+                    background: TAG_COLORS[t] ?? "#666",
+                    color: "#fff",
+                    fontSize: "0.75rem",
+                    padding: "0.15rem 0.5rem",
+                    borderRadius: "1rem",
+                    marginRight: "0.25rem",
+                  }}
+                >
+                  {t}
+                </span>
+              ))}
             </div>
             <div style={{ color: "#666", fontSize: "0.85rem" }}>
               {[k.brand, k.model, k.category].filter(Boolean).join(" · ")}
@@ -252,7 +266,7 @@ export default function AdminKnowledgePage() {
               {k.status === "belum_direview" && (
                 <button onClick={() => doReview(k.id)}>Tandai direview</button>
               )}
-              <button onClick={() => doDelete(k.id)}>Hapus</button>
+              <button onClick={() => doDelete(k)}>Hapus</button>
             </div>
           </li>
         ))}

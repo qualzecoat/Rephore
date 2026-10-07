@@ -24,7 +24,7 @@ type Detail = {
   est_time: string | null;
   tools: string[];
   troubleshooting: string | null;
-  tag: string;
+  tags: string[];
   like_count: number;
   success_count: number;
   content_json: { steps: Step[] };
@@ -92,9 +92,20 @@ export default function KnowledgeDetailPage() {
           .join(" · ")}
       </p>
       <p>
-        <span style={{ background: "#eee", padding: "0.2rem 0.6rem", borderRadius: "1rem", fontSize: "0.8rem" }}>
-          {d.tag}
-        </span>
+        {d.tags.map((t) => (
+          <span
+            key={t}
+            style={{
+              background: "#eee",
+              padding: "0.2rem 0.6rem",
+              borderRadius: "1rem",
+              fontSize: "0.8rem",
+              marginRight: "0.25rem",
+            }}
+          >
+            {t}
+          </span>
+        ))}
       </p>
 
       {d.tools.length > 0 && (

@@ -32,8 +32,8 @@ class KnowledgeOut(BaseModel):
     troubleshooting: str | None
     source: str
     status: str
-    # tag tampilan: "belum direview" | "sudah direview" | "ada testimoni"
-    tag: str
+    # tag tampilan, bisa lebih dari satu, misal ["belum direview", "ada testimoni"]
+    tags: list[str]
     like_count: int
     success_count: int
     created_at: datetime

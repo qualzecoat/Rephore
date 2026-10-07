@@ -13,7 +13,7 @@ type Knowledge = {
   brand: string | null;
   model: string | null;
   category: string | null;
-  tag: string;
+  tags: string[];
   like_count: number;
   success_count: number;
 };
@@ -137,17 +137,21 @@ export default function Home() {
                 <Link href={`/knowledge/${k.id}`} style={{ fontWeight: "bold" }}>
                   {k.title}
                 </Link>{" "}
-                <span
-                  style={{
-                    background: TAG_COLORS[k.tag] ?? "#666",
-                    color: "#fff",
-                    fontSize: "0.75rem",
-                    padding: "0.15rem 0.5rem",
-                    borderRadius: "1rem",
-                  }}
-                >
-                  {k.tag}
-                </span>
+                {k.tags.map((t) => (
+                  <span
+                    key={t}
+                    style={{
+                      background: TAG_COLORS[t] ?? "#666",
+                      color: "#fff",
+                      fontSize: "0.75rem",
+                      padding: "0.15rem 0.5rem",
+                      borderRadius: "1rem",
+                      marginRight: "0.25rem",
+                    }}
+                  >
+                    {t}
+                  </span>
+                ))}
                 <div style={{ color: "#666", fontSize: "0.85rem" }}>
                   {[k.brand, k.model, k.category].filter(Boolean).join(" · ")}
                   {(k.like_count > 0 || k.success_count > 0) &&

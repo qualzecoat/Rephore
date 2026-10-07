@@ -26,12 +26,13 @@ router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 STATUS_ORDER = case((Knowledge.status == "belum_direview", 0), else_=1)
 
 
-def _tag(k: Knowledge) -> str:
+def _tags(k: Knowledge) -> list[str]:
+    """Satu artikel bisa punya beberapa tag sekaligus,
+    misal belum direview tapi sudah ada testimoni."""
+    tags = ["sudah direview" if k.status == "sudah_direview" else "belum direview"]
     if k.like_count + k.success_count > 0:
-        return "ada testimoni"
-    if k.status == "sudah_direview":
-        return "sudah direview"
-    return "belum direview"
+        tags.append("ada testimoni")
+    return tags
 
 
 def _to_out(k: Knowledge) -> KnowledgeOut:
@@ -49,7 +50,7 @@ def _to_out(k: Knowledge) -> KnowledgeOut:
         troubleshooting=k.troubleshooting,
         source=k.source,
         status=k.status,
-        tag=_tag(k),
+        tags=_tags(k),
         like_count=k.like_count,
         success_count=k.success_count,
         created_at=k.created_at,
@@ -186,6 +187,11 @@ def delete_knowledge(
     k = db.get(Knowledge, knowledge_id)
     if k is None:
         raise HTTPException(status_code=404, detail="Knowledge tidak ditemukan")
+    # hapus testimoni & histori pemakaian dulu agar tidak mentok foreign key
+    db.query(KnowledgeFeedback).filter(
+        KnowledgeFeedback.knowledge_id == k.id
+    ).delete()
+    db.query(KnowledgeUsage).filter(KnowledgeUsage.knowledge_id == k.id).delete()
     db.delete(k)
     db.commit()
     return None
