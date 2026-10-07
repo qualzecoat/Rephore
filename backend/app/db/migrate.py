@@ -14,24 +14,40 @@ def run_migrations(engine: Engine) -> None:
         conn.execute(
             text("ALTER TABLE ai_schedules ADD COLUMN IF NOT EXISTS topic TEXT")
         )
-        # Kolom legacy format lama: longgarkan NOT NULL agar insert baru lolos,
-        # dan isi topic jadwal lama dari topik pertama daftar topics.
-        conn.execute(
-            text("ALTER TABLE ai_schedules ALTER COLUMN topics DROP NOT NULL")
-        )
-        conn.execute(
-            text(
-                "ALTER TABLE ai_schedules "
-                "ALTER COLUMN knowledge_per_day DROP NOT NULL"
+        # Blok legacy hanya untuk DB lama yang masih punya kolom 'topics'.
+        # Di install baru kolom itu tidak ada -> lewati agar tidak error.
+        def _has_column(table: str, column: str) -> bool:
+            return (
+                conn.execute(
+                    text(
+                        "SELECT 1 FROM information_schema.columns "
+                        "WHERE table_name = :t AND column_name = :c"
+                    ),
+                    {"t": table, "c": column},
+                ).first()
+                is not None
             )
-        )
-        conn.execute(
-            text(
-                "UPDATE ai_schedules "
-                "SET topic = NULLIF(split_part(topics, ',', 1), '') "
-                "WHERE topic IS NULL AND topics IS NOT NULL"
+
+        if _has_column("ai_schedules", "topics"):
+            # Kolom legacy format lama: longgarkan NOT NULL agar insert baru
+            # lolos, dan isi topic jadwal lama dari topik pertama daftar topics.
+            conn.execute(
+                text("ALTER TABLE ai_schedules ALTER COLUMN topics DROP NOT NULL")
             )
-        )
+            if _has_column("ai_schedules", "knowledge_per_day"):
+                conn.execute(
+                    text(
+                        "ALTER TABLE ai_schedules "
+                        "ALTER COLUMN knowledge_per_day DROP NOT NULL"
+                    )
+                )
+            conn.execute(
+                text(
+                    "UPDATE ai_schedules "
+                    "SET topic = NULLIF(split_part(topics, ',', 1), '') "
+                    "WHERE topic IS NULL AND topics IS NOT NULL"
+                )
+            )
         # Anti-duplikat scheduler (2026-10-07)
         conn.execute(
             text("ALTER TABLE ai_schedules ADD COLUMN IF NOT EXISTS dedup_days INTEGER")
