@@ -24,6 +24,38 @@ const TAG_COLORS: Record<string, string> = {
   "ada testimoni": "#15803d",
 };
 
+const PER_PAGE_OPTIONS = [10, 20, 50, 100];
+
+function KnowledgeItem({ k }: { k: Knowledge }) {
+  return (
+    <li style={{ borderBottom: "1px solid #ddd", padding: "0.75rem 0" }}>
+      <Link href={`/knowledge/${k.id}`} style={{ fontWeight: "bold" }}>
+        {k.title}
+      </Link>{" "}
+      {k.tags.map((t) => (
+        <span
+          key={t}
+          style={{
+            background: TAG_COLORS[t] ?? "#666",
+            color: "#fff",
+            fontSize: "0.75rem",
+            padding: "0.15rem 0.5rem",
+            borderRadius: "1rem",
+            marginRight: "0.25rem",
+          }}
+        >
+          {t}
+        </span>
+      ))}
+      <div style={{ color: "#666", fontSize: "0.85rem" }}>
+        {[k.brand, k.model, k.category].filter(Boolean).join(" · ")}
+        {(k.like_count > 0 || k.success_count > 0) &&
+          ` · 👍 ${k.like_count} · ✅ ${k.success_count}`}
+      </div>
+    </li>
+  );
+}
+
 export default function Home() {
   const router = useRouter();
   const [ready, setReady] = useState(false);
@@ -33,12 +65,51 @@ export default function Home() {
   const [searched, setSearched] = useState(false);
   const [device, setDevice] = useState<DetectedDevice | null>(null);
   const [error, setError] = useState("");
+  // jelajah artikel terbaru (tanpa pencarian)
+  const [browse, setBrowse] = useState<Knowledge[]>([]);
+  const [browsePage, setBrowsePage] = useState(1);
+  const [browsePerPage, setBrowsePerPage] = useState(20);
+  const [browseTotal, setBrowseTotal] = useState(0);
 
   useEffect(() => {
     api<Me>("/auth/me")
       .then(() => setReady(true))
       .catch(() => router.push("/login"));
   }, [router]);
+
+  function loadBrowse(page: number, perPage: number) {
+    const params = new URLSearchParams({
+      order: "newest",
+      page: String(page),
+      per_page: String(perPage),
+    });
+    api<{ items: Knowledge[]; total: number; page: number; per_page: number }>(
+      `/knowledge?${params.toString()}`
+    )
+      .then((r) => {
+        setBrowse(r.items);
+        setBrowseTotal(r.total);
+        setBrowsePage(r.page);
+        setBrowsePerPage(r.per_page);
+      })
+      .catch((e) => setError(e instanceof Error ? e.message : "Gagal memuat artikel"));
+  }
+
+  useEffect(() => {
+    if (ready) loadBrowse(1, browsePerPage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready]);
+
+  function changePerPage(n: number) {
+    loadBrowse(1, n);
+  }
+
+  function backToBrowse() {
+    setSearched(false);
+    setResults([]);
+    setQ("");
+    loadBrowse(1, browsePerPage);
+  }
 
   async function doSearch(query?: string) {
     const keyword = (query ?? q).trim();
@@ -125,41 +196,78 @@ export default function Home() {
       )}
       {error && <p style={{ color: "crimson" }}>{error}</p>}
 
-      {searched && (
+      {searched ? (
         <>
           <h2 style={{ marginTop: "1.5rem" }}>
             Hasil pencarian ({results.length})
           </h2>
+          <button onClick={backToBrowse} style={{ marginBottom: "0.5rem" }}>
+            ← Kembali ke artikel terbaru
+          </button>
           {results.length === 0 && <p>Tidak ada knowledge yang cocok.</p>}
           <ul style={{ listStyle: "none", padding: 0 }}>
             {results.map((k) => (
-              <li key={k.id} style={{ borderBottom: "1px solid #ddd", padding: "0.75rem 0" }}>
-                <Link href={`/knowledge/${k.id}`} style={{ fontWeight: "bold" }}>
-                  {k.title}
-                </Link>{" "}
-                {k.tags.map((t) => (
-                  <span
-                    key={t}
-                    style={{
-                      background: TAG_COLORS[t] ?? "#666",
-                      color: "#fff",
-                      fontSize: "0.75rem",
-                      padding: "0.15rem 0.5rem",
-                      borderRadius: "1rem",
-                      marginRight: "0.25rem",
-                    }}
-                  >
-                    {t}
-                  </span>
-                ))}
-                <div style={{ color: "#666", fontSize: "0.85rem" }}>
-                  {[k.brand, k.model, k.category].filter(Boolean).join(" · ")}
-                  {(k.like_count > 0 || k.success_count > 0) &&
-                    ` · 👍 ${k.like_count} · ✅ ${k.success_count}`}
-                </div>
-              </li>
+              <KnowledgeItem key={k.id} k={k} />
             ))}
           </ul>
+        </>
+      ) : (
+        <>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginTop: "1.5rem",
+            }}
+          >
+            <h2 style={{ margin: 0 }}>Artikel terbaru</h2>
+            <label style={{ fontSize: "0.85rem", color: "#666" }}>
+              Tampil:{" "}
+              <select
+                value={browsePerPage}
+                onChange={(e) => changePerPage(Number(e.target.value))}
+              >
+                {PER_PAGE_OPTIONS.map((n) => (
+                  <option key={n} value={n}>
+                    {n}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          {browse.length === 0 && <p>Belum ada artikel.</p>}
+          <ul style={{ listStyle: "none", padding: 0 }}>
+            {browse.map((k) => (
+              <KnowledgeItem key={k.id} k={k} />
+            ))}
+          </ul>
+          {browseTotal > browsePerPage && (
+            <div
+              style={{
+                display: "flex",
+                gap: "0.75rem",
+                alignItems: "center",
+                marginTop: "1rem",
+              }}
+            >
+              <button
+                onClick={() => loadBrowse(browsePage - 1, browsePerPage)}
+                disabled={browsePage <= 1}
+              >
+                ← Sebelumnya
+              </button>
+              <span style={{ fontSize: "0.85rem", color: "#666" }}>
+                Halaman {browsePage} dari {Math.ceil(browseTotal / browsePerPage)}
+              </span>
+              <button
+                onClick={() => loadBrowse(browsePage + 1, browsePerPage)}
+                disabled={browsePage >= Math.ceil(browseTotal / browsePerPage)}
+              >
+                Berikutnya →
+              </button>
+            </div>
+          )}
         </>
       )}
     </main>

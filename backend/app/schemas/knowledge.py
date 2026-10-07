@@ -46,6 +46,13 @@ class KnowledgeDetail(KnowledgeOut):
     content_markdown: str
 
 
+class KnowledgeListOut(BaseModel):
+    items: list[KnowledgeOut]
+    total: int
+    page: int
+    per_page: int
+
+
 class ParseOut(BaseModel):
     data: dict
     warnings: list[str]

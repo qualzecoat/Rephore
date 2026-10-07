@@ -1,7 +1,7 @@
 """CRUD knowledge + parser BBCode."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import case, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,7 @@ from ..schemas.knowledge import (
     FeedbackIn,
     KnowledgeCreate,
     KnowledgeDetail,
+    KnowledgeListOut,
     KnowledgeOut,
     KnowledgeUpdate,
     ParseOut,
@@ -99,14 +100,20 @@ def create_knowledge(
     return _to_detail(k)
 
 
-@router.get("", response_model=list[KnowledgeOut])
+@router.get("", response_model=KnowledgeListOut)
 def list_knowledge(
     status_filter: str | None = None,
     category: str | None = None,
     q: str | None = None,
+    # "review_queue" (belum direview dulu) | "newest" (terbaru dulu)
+    order: str = "review_queue",
+    page: int = 1,
+    per_page: int = 20,
     user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
+    page = max(1, page)
+    per_page = min(100, max(1, per_page))
     stmt = select(Knowledge)
     if status_filter:
         stmt = stmt.where(Knowledge.status == status_filter)
@@ -121,8 +128,19 @@ def list_knowledge(
                 Knowledge.model.ilike(like),
             )
         )
-    stmt = stmt.order_by(STATUS_ORDER, Knowledge.created_at.asc())
-    return [_to_out(k) for k in db.scalars(stmt).all()]
+    total = db.scalar(select(func.count()).select_from(stmt.subquery())) or 0
+    if order == "newest":
+        stmt = stmt.order_by(Knowledge.created_at.desc())
+    else:
+        stmt = stmt.order_by(STATUS_ORDER, Knowledge.created_at.asc())
+    stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+    items = db.scalars(stmt).all()
+    return KnowledgeListOut(
+        items=[_to_out(k) for k in items],
+        total=total,
+        page=page,
+        per_page=per_page,
+    )
 
 
 @router.get("/{knowledge_id}", response_model=KnowledgeDetail)

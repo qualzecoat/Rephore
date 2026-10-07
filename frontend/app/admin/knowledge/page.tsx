@@ -68,7 +68,9 @@ export default function AdminKnowledgePage() {
     const params = new URLSearchParams();
     if (statusFilter) params.set("status_filter", statusFilter);
     if (q) params.set("q", q);
-    api<Knowledge[]>(`/knowledge?${params.toString()}`).then(setItems).catch((e) => setError(String(e)));
+    api<{ items: Knowledge[]; total: number }>(`/knowledge?${params.toString()}`)
+      .then((r) => setItems(r.items))
+      .catch((e) => setError(String(e)));
   }
 
   useEffect(() => {
