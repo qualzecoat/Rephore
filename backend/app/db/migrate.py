@@ -32,3 +32,10 @@ def run_migrations(engine: Engine) -> None:
                 "WHERE topic IS NULL AND topics IS NOT NULL"
             )
         )
+        # Anti-duplikat scheduler (2026-10-07)
+        conn.execute(
+            text("ALTER TABLE ai_schedules ADD COLUMN IF NOT EXISTS dedup_days INTEGER")
+        )
+        conn.execute(
+            text("UPDATE ai_schedules SET dedup_days = 30 WHERE dedup_days IS NULL")
+        )

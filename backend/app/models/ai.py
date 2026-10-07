@@ -82,6 +82,8 @@ class AiSchedule(Base):
     topic: Mapped[str] = mapped_column(Text, default="")
     # jam (0-23) kapan jadwal jalan tiap hari
     run_hour: Mapped[int] = mapped_column(Integer, default=2)
+    # anti-duplikat: lewati bila artikel mirip sudah ada dalam N hari terakhir
+    dedup_days: Mapped[int] = mapped_column(Integer, default=30)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     last_run_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     created_by: Mapped[str | None] = mapped_column(

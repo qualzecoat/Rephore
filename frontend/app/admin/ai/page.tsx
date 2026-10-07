@@ -39,6 +39,7 @@ type Schedule = {
   category: string | null;
   topic: string | null;
   run_hour: number;
+  dedup_days: number | null;
   is_active: boolean;
   last_run_date: string | null;
 };
@@ -77,6 +78,7 @@ export default function AdminAiPage() {
   const [sCat, setSCat] = useState("software");
   const [sTopic, setSTopic] = useState("root");
   const [sHour, setSHour] = useState(2);
+  const [sDedup, setSDedup] = useState(30);
 
   function load() {
     api<Provider[]>("/ai/providers").then(setProviders).catch(() => {});
@@ -186,6 +188,7 @@ export default function AdminAiPage() {
           category: sCat || null,
           topic: sTopic,
           run_hour: sHour,
+          dedup_days: sDedup,
         }),
       });
       setSName("");
@@ -301,6 +304,7 @@ export default function AdminAiPage() {
         {schedules.map((s) => (
           <li key={s.id} style={{ marginBottom: "0.4rem" }}>
             <b>{s.name}</b> — tiap hari jam {s.run_hour}:00, topik: {s.topic || "-"}
+            <span style={{ color: "#666" }}> (anti-duplikat {s.dedup_days ?? 30} hari)</span>
             {[s.brand, s.phone_model, s.category].filter(Boolean).length > 0 &&
               ` (${[s.brand, s.phone_model, s.category].filter(Boolean).join(" · ")})`}
             {s.last_run_date && <span style={{ color: "#666" }}> (terakhir: {s.last_run_date})</span>}{" "}
@@ -333,6 +337,7 @@ export default function AdminAiPage() {
         </select>
         <input placeholder="Topik (misal root)" value={sTopic} onChange={(e) => setSTopic(e.target.value)} required style={inputStyle} />
         <label style={inputStyle}>Jam: <input type="number" min={0} max={23} value={sHour} onChange={(e) => setSHour(Number(e.target.value))} style={{ width: "3rem" }} /></label>
+        <label style={inputStyle} title="Jadwal dilewati bila artikel mirip sudah ada dalam N hari terakhir">Anti-duplikat (hari): <input type="number" min={1} max={365} value={sDedup} onChange={(e) => setSDedup(Number(e.target.value))} style={{ width: "3.5rem" }} /></label>
         <button type="submit" style={inputStyle}>Simpan jadwal</button>
       </form>
     </main>

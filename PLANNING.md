@@ -123,7 +123,10 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
   - Scheduler: **1 jadwal = 1 topik per hari** di jam yang ditentukan. Alur tiap
     jadwal: AI riset info HP dulu (lengkap dengan kode-kode) → buat artikel
     via parser → rilis sebagai knowledge baru. Mau 2–3 artikel/hari = buat
-    2–3 jadwal
+    2–3 jadwal. **Anti-duplikat**: jadwal dilewati bila artikel mirip
+    (brand/model sama + kata kunci topik di judul) sudah ada dalam N hari
+    terakhir, atau job serupa masih antre — N bisa diatur per jadwal
+    (default 30 hari)
   - Worker mengisi embedding bila provider punya embedding_model; pencarian
     memakai hybrid keyword + semantik (fallback keyword bila gagal)
   - Testimoni "berhasil" dibatasi 1x per user (ditegakkan di backend)

@@ -93,6 +93,8 @@ class ScheduleIn(BaseModel):
     # satu topik per jadwal, misal "root"
     topic: str = ""
     run_hour: int = 2
+    # anti-duplikat: lewati bila artikel mirip sudah ada dalam N hari terakhir
+    dedup_days: int = 30
     is_active: bool = True
 
 
@@ -105,6 +107,7 @@ class ScheduleUpdate(BaseModel):
     category: str | None = None
     topic: str | None = None
     run_hour: int | None = None
+    dedup_days: int | None = None
     is_active: bool | None = None
 
 
@@ -120,6 +123,7 @@ class ScheduleOut(BaseModel):
     category: str | None
     topic: str | None
     run_hour: int
+    dedup_days: int | None
     is_active: bool
     last_run_date: date | None
     created_at: datetime

@@ -8,9 +8,9 @@ Loop tiap POLL_SECONDS (default 60 detik):
 import os
 import time
 import traceback
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
-from sqlalchemy import create_engine, select
+from sqlalchemy import create_engine, func, select
 from sqlalchemy.exc import OperationalError
 from sqlalchemy.orm import sessionmaker
 
@@ -129,6 +129,37 @@ def process_pending(db) -> int:
     return len(jobs)
 
 
+def _similar_knowledge_exists(db, brand, phone_model, topic, days: int) -> bool:
+    """Cek apakah sudah ada artikel mirip dalam N hari terakhir.
+
+    Brand & model dicocokkan persis (case-insensitive); topik dicocokkan
+    sebagai kata kunci pada judul karena isi subkategori tulisan AI
+    bisa bervariasi ("root" vs "Root HP").
+    """
+    cutoff = datetime.now() - timedelta(days=max(1, days))
+    q = select(Knowledge.id).where(Knowledge.created_at >= cutoff)
+    if brand:
+        q = q.where(func.lower(Knowledge.brand) == brand.lower())
+    if phone_model:
+        q = q.where(func.lower(Knowledge.model) == phone_model.lower())
+    if topic:
+        for word in topic.split():
+            q = q.where(Knowledge.title.ilike(f"%{word}%"))
+    return db.scalar(q.limit(1)) is not None
+
+
+def _similar_job_pending(db, brand, phone_model, topic) -> bool:
+    """Cek apakah sudah ada job (pending/processing) untuk target yang sama."""
+    q = select(AiJob.id).where(AiJob.status.in_(["pending", "processing"]))
+    if brand:
+        q = q.where(func.lower(AiJob.brand) == brand.lower())
+    if phone_model:
+        q = q.where(func.lower(AiJob.phone_model) == phone_model.lower())
+    if topic:
+        q = q.where(func.lower(AiJob.subcategory) == topic.lower())
+    return db.scalar(q.limit(1)) is not None
+
+
 def check_schedules(db) -> int:
     """Satu jadwal yang sudah waktunya -> tepat satu job untuk hari ini."""
     now = datetime.now()
@@ -141,6 +172,26 @@ def check_schedules(db) -> int:
         if s.last_run_date == today:
             continue
         if now.hour < s.run_hour:
+            continue
+        dedup_days = s.dedup_days or 30
+        if _similar_job_pending(db, s.brand, s.phone_model, s.topic):
+            print(
+                f"[worker] jadwal '{s.name}': dilewati — job serupa masih antre/diproses",
+                flush=True,
+            )
+            s.last_run_date = today
+            db.commit()
+            continue
+        if _similar_knowledge_exists(
+            db, s.brand, s.phone_model, s.topic, dedup_days
+        ):
+            print(
+                f"[worker] jadwal '{s.name}': dilewati — artikel mirip "
+                f"sudah ada dalam {dedup_days} hari terakhir",
+                flush=True,
+            )
+            s.last_run_date = today
+            db.commit()
             continue
         db.add(
             AiJob(
