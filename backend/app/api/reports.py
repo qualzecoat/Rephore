@@ -46,6 +46,39 @@ def create_report(
     return {"id": r.id}
 
 
+@router.get("/me", response_model=list[ReportOut])
+def my_reports(
+    status: str | None = None,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Laporan & saran yang dikirim user yang sedang login + status penanganannya."""
+    q = (
+        select(KnowledgeReport, Knowledge.title, User.username)
+        .join(Knowledge, KnowledgeReport.knowledge_id == Knowledge.id)
+        .join(User, KnowledgeReport.user_id == User.id)
+        .where(KnowledgeReport.user_id == user.id)
+        .order_by(KnowledgeReport.created_at.desc())
+        .limit(200)
+    )
+    if status:
+        q = q.where(KnowledgeReport.status == status)
+    rows = db.execute(q).all()
+    return [
+        ReportOut(
+            id=r.id,
+            knowledge_id=r.knowledge_id,
+            knowledge_title=title,
+            username=username,
+            kind=r.kind,
+            message=r.message,
+            status=r.status,
+            created_at=r.created_at,
+        )
+        for r, title, username in rows
+    ]
+
+
 @router.get("", response_model=list[ReportOut])
 def list_reports(
     status: str | None = None,

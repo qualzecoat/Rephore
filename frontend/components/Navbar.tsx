@@ -69,9 +69,14 @@ export default function Navbar() {
           Rephore
         </Link>
         {me && (
-          <Link href="/history" style={linkStyle}>
-            Riwayat
-          </Link>
+          <>
+            <Link href="/history" style={linkStyle}>
+              Riwayat
+            </Link>
+            <Link href="/laporan" style={linkStyle}>
+              Laporan saya
+            </Link>
+          </>
         )}
         {me?.role === "admin" && (
           <span style={{ color: "#666" }}>
