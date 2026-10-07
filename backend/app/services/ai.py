@@ -87,6 +87,23 @@ def embed_text(base_url: str, api_key: str, model: str, text: str) -> list[float
     return data["data"][0]["embedding"]
 
 
+DEFAULT_KNOWLEDGE_SYSTEM = (
+    "Kamu adalah penulis panduan servis smartphone profesional. "
+    "Tulis tutorial yang akurat, aman, dan praktis dalam Bahasa Indonesia."
+)
+
+DEFAULT_KNOWLEDGE_USER = (
+    "Buatkan tutorial servis untuk: {target}\n"
+    "Fokus: {focus}\n\n"
+    "LANGKAH PERTAMA: cari tahu informasi lengkap HP ini \u2014 "
+    "nama-nama pasar, SEMUA kode/varian (misal SM-A546B, SM-A546E), "
+    "dan cantumkan semuanya di atribut codes pada tag [meta]. "
+    "Jangan menulis tutorial sebelum info HP-nya lengkap.\n\n"
+    "{bbcode_spec}\n\n"
+    "Output HANYA BBCode di atas, tanpa teks pembuka/penutup."
+)
+
+
 def build_knowledge_prompt(
     brand: str | None,
     phone_model: str | None,
@@ -94,40 +111,36 @@ def build_knowledge_prompt(
     subcategory: str | None,
     topic: str | None,
     research_brief: str | None = None,
+    prompts: dict | None = None,
 ) -> list[dict]:
     """Susun messages untuk generate satu knowledge servis HP.
 
     research_brief: hasil tahap riset forum (boleh None -> perilaku lama).
+    prompts: override template {"system", "user", "bbcode_spec"}; bila
+        template user rusak (placeholder tidak dikenal), pakai default.
     """
     target = " ".join(p for p in [brand, phone_model] if p) or "smartphone umum"
     focus = " ".join(p for p in [category, subcategory, topic] if p) or "servis umum"
-    user_content = (
-        f"Buatkan tutorial servis untuk: {target}\n"
-        f"Fokus: {focus}\n\n"
-        "LANGKAH PERTAMA: cari tahu informasi lengkap HP ini \u2014 "
-        "nama-nama pasar, SEMUA kode/varian (misal SM-A546B, SM-A546E), "
-        "dan cantumkan semuanya di atribut codes pada tag [meta]. "
-        "Jangan menulis tutorial sebelum info HP-nya lengkap.\n\n"
-        f"{BBCODE_SPEC}\n\n"
-        "Output HANYA BBCode di atas, tanpa teks pembuka/penutup."
-    )
+    prompts = prompts or {}
+    system = prompts.get("system") or DEFAULT_KNOWLEDGE_SYSTEM
+    user_tpl = prompts.get("user") or DEFAULT_KNOWLEDGE_USER
+    bbcode = prompts.get("bbcode_spec") or BBCODE_SPEC
+    try:
+        user_content = user_tpl.format(
+            target=target, focus=focus, bbcode_spec=bbcode
+        )
+    except (KeyError, IndexError, ValueError):
+        user_content = DEFAULT_KNOWLEDGE_USER.format(
+            target=target, focus=focus, bbcode_spec=BBCODE_SPEC
+        )
     if research_brief:
         user_content += (
             "\n\n=== BAHAN RISET DARI FORUM (WAJIB JADI ACUAN UTAMA) ===\n"
             + research_brief
         )
     return [
-        {
-            "role": "system",
-            "content": (
-                "Kamu adalah penulis panduan servis smartphone profesional. "
-                "Tulis tutorial yang akurat, aman, dan praktis dalam Bahasa Indonesia."
-            ),
-        },
-        {
-            "role": "user",
-            "content": user_content,
-        },
+        {"role": "system", "content": system},
+        {"role": "user", "content": user_content},
     ]
 
 

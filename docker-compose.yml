@@ -47,6 +47,10 @@ services:
     build: ./frontend
     restart: unless-stopped
     env_file: ./frontend/.env.local
+    environment:
+      # WAJIB: tanpa ini Next.js standalone bind ke HOSTNAME container
+      # (satu IP spesifik), sehingga tidak terjangkau dari network lain.
+      HOSTNAME: "0.0.0.0"
     depends_on:
       - backend
     ports:

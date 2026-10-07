@@ -95,6 +95,9 @@ export default function Navbar() {
             <Link href="/admin/saran-ai" style={linkStyle}>
               Saran AI
             </Link>
+            <Link href="/admin/pengaturan" style={linkStyle}>
+              Pengaturan
+            </Link>
             <Link href="/admin/history" style={linkStyle}>
               Histori
             </Link>

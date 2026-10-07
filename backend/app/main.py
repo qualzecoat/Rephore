@@ -10,6 +10,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
 from .api import ai, auth, history, knowledge, logwatch, reports, search, users
+from .api import settings as settings_api
 from .core.config import settings
 from .db.base import Base
 from .db.migrate import run_migrations
@@ -62,6 +63,7 @@ app.include_router(history.router)
 app.include_router(ai.router)
 app.include_router(reports.router)
 app.include_router(logwatch.router)
+app.include_router(settings_api.router)
 
 
 @app.middleware("http")

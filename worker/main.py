@@ -19,6 +19,7 @@ from app.db.base import Base
 from app.models import ai as _ai_model  # noqa: F401 — daftarkan semua model
 from app.models import device as _device_model  # noqa: F401 — agar FK ter-resolve
 from app.models import knowledge as _knowledge_model  # noqa: F401
+from app.models import settings as _settings_model  # noqa: F401
 from app.models import user as _user_model  # noqa: F401 — agar FK ter-resolve
 from app.models.ai import AiJob, AiProvider, AiSchedule
 from app.models.knowledge import Knowledge
@@ -38,6 +39,7 @@ from app.services.logwatch import (
 )
 from app.services.knowledge import apply_parsed
 from app.services.research import research_topic
+from app.services.settings import get_setting
 from app.services.parser import parse_bbcode
 
 POLL_SECONDS = int(os.environ.get("WORKER_POLL_SECONDS", "60"))
@@ -73,12 +75,26 @@ def run_job(db, job: AiJob) -> None:
     if not model:
         raise RuntimeError("Model belum dipilih untuk job ini")
 
-    # Tahap riset: kumpulkan bahan dari forum via Brave Search.
+    # Tahap riset: kumpulkan bahan dari forum (konfigurasi via Pengaturan AI).
     # Non-fatal: bila gagal/tidak ada key, lanjut dengan pengetahuan model.
+    prompts = {
+        "system": get_setting(db, "prompt.knowledge_system"),
+        "user": get_setting(db, "prompt.knowledge_user"),
+        "bbcode_spec": get_setting(db, "prompt.bbcode_spec"),
+    }
     brief = None
     try:
         brief = research_topic(
-            job.brand, job.phone_model, job.topic or job.subcategory
+            job.brand,
+            job.phone_model,
+            job.topic or job.subcategory,
+            config={
+                "enabled": get_setting(db, "search.enabled") == "1",
+                "brave_api_key": get_setting(db, "search.brave_api_key"),
+                "max_pages": get_setting(db, "search.max_pages"),
+                "max_chars_per_page": get_setting(db, "search.max_chars_per_page"),
+                "rules": get_setting(db, "prompt.research_rules"),
+            },
         )
     except Exception as e:
         print(f"[worker] riset error (non-fatal): {e}", flush=True)
@@ -90,6 +106,7 @@ def run_job(db, job: AiJob) -> None:
         job.subcategory,
         job.topic,
         research_brief=brief,
+        prompts=prompts,
     )
     content = chat_complete(
         provider.base_url,

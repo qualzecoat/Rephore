@@ -12,6 +12,16 @@ FETCH_TIMEOUT = 20.0
 MAX_PAGES = 4
 MAX_CHARS_PER_PAGE = 6000
 
+DEFAULT_RESEARCH_RULES = (
+    "ATURAN PAKAI BAHAN INI:\n"
+    "- Jadikan acuan utama langkah-langkah, peringatan, dan troubleshooting.\n"
+    "- Tulis ulang dengan bahasamu sendiri; JANGAN copy-paste kalimat forum.\n"
+    "- Bila sumber bertentangan, pilih yang didukung bukti/komentar "
+    "terbanyak dan catat perbedaannya di [troubleshooting].\n"
+    "- Cantumkan link file/tool yang relevan pada langkah yang "
+    "membutuhkannya; jangan mengarang URL file."
+)
+
 _MEGA = "mega" + ".nz"  # ditulis terpisah agar tidak terdeteksi sebagai URL
 
 FILE_HOST_PATTERNS = (
@@ -109,7 +119,7 @@ def brave_search(api_key, query, count=10):
     return out
 
 
-def fetch_page(url):
+def fetch_page(url, max_chars=MAX_CHARS_PER_PAGE):
     """Ambil halaman, kembalikan (teks, [(anchor, href)]). Gagal -> ('', [])."""
     try:
         with httpx.Client(
@@ -134,7 +144,7 @@ def fetch_page(url):
     try:
         p = _TextExtractor()
         p.feed(html)
-        return p.text()[:MAX_CHARS_PER_PAGE], p.links
+        return p.text()[:max_chars], p.links
     except Exception:
         return "", []
 
@@ -153,9 +163,18 @@ def _build_queries(brand, phone_model, topic):
     elif device:
         queries.append("site:xdaforums.com %s" % device)
     return queries[:3]
-def research_topic(brand, phone_model, topic):
-    """Jalankan riset forum untuk sebuah topik. Kembalikan brief teks / None."""
-    api_key = os.environ.get("BRAVE_SEARCH_API_KEY", "").strip()
+def research_topic(brand, phone_model, topic, config=None):
+    """Jalankan riset forum untuk sebuah topik. Kembalikan brief teks / None.
+
+    config: dict opsional {"enabled", "brave_api_key", "max_pages",
+        "max_chars_per_page", "rules"}. Tanpa config, pakai default + env.
+    """
+    cfg = config or {}
+    if not cfg.get("enabled", True):
+        print("[riset] dinonaktifkan via pengaturan", flush=True)
+        return None
+    api_key = (cfg.get("brave_api_key") or "").strip() or os.environ.get(
+        "BRAVE_SEARCH_API_KEY", "").strip()
     if not api_key:
         print("[riset] BRAVE_SEARCH_API_KEY tidak diset, lewati riset", flush=True)
         return None
@@ -178,8 +197,17 @@ def research_topic(brand, phone_model, topic):
     sources = []
     file_links = []
     seen_files = set()
-    for item in list(seen.values())[:MAX_PAGES]:
-        text, links = fetch_page(item["url"])
+    try:
+        max_pages = max(1, int(cfg.get("max_pages") or MAX_PAGES))
+    except (TypeError, ValueError):
+        max_pages = MAX_PAGES
+    try:
+        max_chars = max(500, int(cfg.get("max_chars_per_page") or MAX_CHARS_PER_PAGE))
+    except (TypeError, ValueError):
+        max_chars = MAX_CHARS_PER_PAGE
+    rules = cfg.get("rules") or DEFAULT_RESEARCH_RULES
+    for item in list(seen.values())[:max_pages]:
+        text, links = fetch_page(item["url"], max_chars=max_chars)
         fetched = bool(text)
         if not text:
             # fallback: XDA dkk. memblokir fetch (Cloudflare 403);
@@ -217,15 +245,7 @@ def research_topic(brand, phone_model, topic):
         for label, url, src in file_links[:20]:
             parts.append("- %s: %s  (dari: %s)" % (label, url, src[:60]))
         parts.append("")
-    parts.append(
-        "ATURAN PAKAI BAHAN INI:\n"
-        "- Jadikan acuan utama langkah-langkah, peringatan, dan troubleshooting.\n"
-        "- Tulis ulang dengan bahasamu sendiri; JANGAN copy-paste kalimat forum.\n"
-        "- Bila sumber bertentangan, pilih yang didukung bukti/komentar "
-        "terbanyak dan catat perbedaannya di [troubleshooting].\n"
-        "- Cantumkan link file/tool yang relevan pada langkah yang "
-        "membutuhkannya; jangan mengarang URL file."
-    )
+    parts.append(rules)
     brief = "\n".join(parts)
     print("[riset] brief jadi: %d sumber, %d link file, %d karakter"
           % (len(sources), len(file_links), len(brief)), flush=True)
