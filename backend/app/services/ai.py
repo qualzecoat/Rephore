@@ -93,10 +93,29 @@ def build_knowledge_prompt(
     category: str | None,
     subcategory: str | None,
     topic: str | None,
+    research_brief: str | None = None,
 ) -> list[dict]:
-    """Susun messages untuk generate satu knowledge servis HP."""
+    """Susun messages untuk generate satu knowledge servis HP.
+
+    research_brief: hasil tahap riset forum (boleh None -> perilaku lama).
+    """
     target = " ".join(p for p in [brand, phone_model] if p) or "smartphone umum"
     focus = " ".join(p for p in [category, subcategory, topic] if p) or "servis umum"
+    user_content = (
+        f"Buatkan tutorial servis untuk: {target}\n"
+        f"Fokus: {focus}\n\n"
+        "LANGKAH PERTAMA: cari tahu informasi lengkap HP ini \u2014 "
+        "nama-nama pasar, SEMUA kode/varian (misal SM-A546B, SM-A546E), "
+        "dan cantumkan semuanya di atribut codes pada tag [meta]. "
+        "Jangan menulis tutorial sebelum info HP-nya lengkap.\n\n"
+        f"{BBCODE_SPEC}\n\n"
+        "Output HANYA BBCode di atas, tanpa teks pembuka/penutup."
+    )
+    if research_brief:
+        user_content += (
+            "\n\n=== BAHAN RISET DARI FORUM (WAJIB JADI ACUAN UTAMA) ===\n"
+            + research_brief
+        )
     return [
         {
             "role": "system",
@@ -107,16 +126,7 @@ def build_knowledge_prompt(
         },
         {
             "role": "user",
-            "content": (
-                f"Buatkan tutorial servis untuk: {target}\n"
-                f"Fokus: {focus}\n\n"
-                "LANGKAH PERTAMA: cari tahu informasi lengkap HP ini — "
-                "nama-nama pasar, SEMUA kode/varian (misal SM-A546B, SM-A546E), "
-                "dan cantumkan semuanya di atribut codes pada tag [meta]. "
-                "Jangan menulis tutorial sebelum info HP-nya lengkap.\n\n"
-                f"{BBCODE_SPEC}\n\n"
-                "Output HANYA BBCode di atas, tanpa teks pembuka/penutup."
-            ),
+            "content": user_content,
         },
     ]
 

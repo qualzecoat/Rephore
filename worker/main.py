@@ -37,6 +37,7 @@ from app.services.logwatch import (
     record_error_event,
 )
 from app.services.knowledge import apply_parsed
+from app.services.research import research_topic
 from app.services.parser import parse_bbcode
 
 POLL_SECONDS = int(os.environ.get("WORKER_POLL_SECONDS", "60"))
@@ -72,8 +73,23 @@ def run_job(db, job: AiJob) -> None:
     if not model:
         raise RuntimeError("Model belum dipilih untuk job ini")
 
+    # Tahap riset: kumpulkan bahan dari forum via Brave Search.
+    # Non-fatal: bila gagal/tidak ada key, lanjut dengan pengetahuan model.
+    brief = None
+    try:
+        brief = research_topic(
+            job.brand, job.phone_model, job.topic or job.subcategory
+        )
+    except Exception as e:
+        print(f"[worker] riset error (non-fatal): {e}", flush=True)
+
     messages = build_knowledge_prompt(
-        job.brand, job.phone_model, job.category, job.subcategory, job.topic
+        job.brand,
+        job.phone_model,
+        job.category,
+        job.subcategory,
+        job.topic,
+        research_brief=brief,
     )
     content = chat_complete(
         provider.base_url,
