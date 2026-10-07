@@ -79,3 +79,23 @@ class KnowledgeFeedback(Base):
     # "like" | "success"
     kind: Mapped[str] = mapped_column(String(16))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class KnowledgeReport(Base):
+    """Laporan masalah atau saran perbaikan dari user untuk sebuah knowledge."""
+
+    __tablename__ = "knowledge_reports"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
+    knowledge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("knowledges.id")
+    )
+    # "report" (laporkan masalah) | "suggestion" (saran perbaikan)
+    kind: Mapped[str] = mapped_column(String(16))
+    message: Mapped[str] = mapped_column(Text)
+    # "open" | "resolved"
+    status: Mapped[str] = mapped_column(String(16), default="open")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

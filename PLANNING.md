@@ -141,6 +141,15 @@ lihat histori pemakaian knowledge + data perangkat user → kelola AI provider.
   - Hardening deploy: `docker-compose.prod.yml` + Caddy (HTTPS otomatis,
     `/api/*` → backend), DB/redis/backend tidak diekspos publik,
     panduan `DEPLOY.md`
+- **Pasca Fase 5** (2026-10-07)
+  - Navigasi: komponen `Navbar` bersama di semua halaman
+  - Tag ganda per artikel; hapus knowledge ikut menghapus testimoni & histori
+    (dengan peringatan bila sudah ada testimoni)
+  - Halaman review admin: klik judul → baca isi → Tandai direview / Hapus
+    / Batalkan direview (`POST /knowledge/{id}/unreview`)
+  - Laporan & saran perbaikan dari user (`knowledge_reports`,
+    `POST /reports/knowledge/{id}`, halaman `/admin/reports`)
+  - Anti-duplikat scheduler; like dibatasi 1x per user di backend
 
 ## 10. Keputusan terbuka
 

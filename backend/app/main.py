@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.exc import OperationalError
 
-from .api import ai, auth, history, knowledge, search, users
+from .api import ai, auth, history, knowledge, reports, search, users
 from .core.config import settings
 from .db.base import Base
 from .db.migrate import run_migrations
@@ -57,6 +57,7 @@ app.include_router(knowledge.router)
 app.include_router(search.router)
 app.include_router(history.router)
 app.include_router(ai.router)
+app.include_router(reports.router)
 
 
 @app.get("/health")

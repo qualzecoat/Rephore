@@ -54,6 +54,9 @@ export default function Navbar() {
             <Link href="/admin/ai" style={linkStyle}>
               AI
             </Link>
+            <Link href="/admin/reports" style={linkStyle}>
+              Laporan
+            </Link>
             <Link href="/admin/history" style={linkStyle}>
               Histori
             </Link>

@@ -23,6 +23,10 @@ export default function KnowledgeDetailPage() {
   const [error, setError] = useState("");
   const [votedLike, setVotedLike] = useState(false);
   const [votedSuccess, setVotedSuccess] = useState(false);
+  // form laporan / saran: null | "report" | "suggestion"
+  const [reportKind, setReportKind] = useState<null | "report" | "suggestion">(null);
+  const [reportMsg, setReportMsg] = useState("");
+  const [reportSent, setReportSent] = useState(false);
 
   useEffect(() => {
     api<Me>("/auth/me")
@@ -69,6 +73,25 @@ export default function KnowledgeDetailPage() {
     }
   }
 
+  async function sendReport() {
+    if (!params.id || !reportKind) return;
+    if (!reportMsg.trim()) {
+      setError("Isi dulu alasan/sarannya.");
+      return;
+    }
+    try {
+      await api(`/reports/knowledge/${params.id}`, {
+        method: "POST",
+        body: JSON.stringify({ kind: reportKind, message: reportMsg }),
+      });
+      setReportKind(null);
+      setReportMsg("");
+      setReportSent(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal mengirim");
+    }
+  }
+
   if (error) return <main style={{ padding: "2rem" }}><p style={{ color: "crimson" }}>{error}</p><Link href="/">Kembali</Link></main>;
   if (!d) return <main style={{ padding: "2rem" }}>Memuat...</main>;
 
@@ -98,6 +121,50 @@ export default function KnowledgeDetailPage() {
         </button>
       </div>
       {(votedLike || votedSuccess) && <p style={{ color: "#15803d" }}>Terima kasih atas testimoninya!</p>}
+
+      <h2>Laporkan / Saran</h2>
+      <p style={{ color: "#666", fontSize: "0.9rem" }}>
+        Menemukan kesalahan atau punya saran perbaikan untuk tutorial ini?
+      </p>
+      {reportSent && <p style={{ color: "#15803d" }}>Terima kasih, masukanmu sudah terkirim ke admin.</p>}
+      {!reportKind ? (
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button onClick={() => { setReportKind("report"); setReportSent(false); }} style={{ padding: "0.6rem 1.2rem" }}>
+            🚩 Laporkan masalah
+          </button>
+          <button onClick={() => { setReportKind("suggestion"); setReportSent(false); }} style={{ padding: "0.6rem 1.2rem" }}>
+            💡 Saran perbaikan
+          </button>
+        </div>
+      ) : (
+        <div>
+          <p style={{ fontWeight: 600 }}>
+            {reportKind === "report" ? "🚩 Alasan pelaporan:" : "💡 Saran perbaikan:"}
+          </p>
+          <textarea
+            value={reportMsg}
+            onChange={(e) => setReportMsg(e.target.value)}
+            rows={4}
+            placeholder={
+              reportKind === "report"
+                ? "Contoh: langkah 3 tidak sesuai untuk varian SM-A546E..."
+                : "Contoh: tambahkan cara cek via fastboot..."
+            }
+            style={{ width: "100%", padding: "0.6rem", boxSizing: "border-box" }}
+          />
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <button onClick={sendReport} style={{ padding: "0.6rem 1.2rem" }}>
+              Kirim
+            </button>
+            <button
+              onClick={() => { setReportKind(null); setReportMsg(""); }}
+              style={{ padding: "0.6rem 1.2rem" }}
+            >
+              Batal
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

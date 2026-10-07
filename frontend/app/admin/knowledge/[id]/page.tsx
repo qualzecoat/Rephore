@@ -54,6 +54,19 @@ export default function AdminKnowledgeReviewPage() {
     }
   }
 
+  async function doUnreview() {
+    if (!params.id) return;
+    if (!confirm("Kembalikan artikel ini ke status belum direview?")) return;
+    try {
+      const updated = await api<Detail>(`/knowledge/${params.id}/unreview`, {
+        method: "POST",
+      });
+      setD(updated);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Gagal membatalkan review");
+    }
+  }
+
   async function doDelete() {
     if (!d) return;
     const testi = d.like_count + d.success_count;
@@ -99,12 +112,19 @@ export default function AdminKnowledgeReviewPage() {
 
       <hr style={{ margin: "2rem 0 1rem" }} />
       <div style={{ display: "flex", gap: "0.75rem", paddingBottom: "2rem" }}>
-        {d.status !== "sudah_direview" && (
+        {d.status !== "sudah_direview" ? (
           <button
             onClick={doReview}
             style={{ padding: "0.7rem 1.4rem", fontWeight: 600 }}
           >
             Tandai direview
+          </button>
+        ) : (
+          <button
+            onClick={doUnreview}
+            style={{ padding: "0.7rem 1.4rem" }}
+          >
+            Batalkan direview
           </button>
         )}
         <button

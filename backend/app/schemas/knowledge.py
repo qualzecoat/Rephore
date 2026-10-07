@@ -54,3 +54,25 @@ class ParseOut(BaseModel):
 class FeedbackIn(BaseModel):
     # "like" | "success"
     type: str
+
+
+class ReportIn(BaseModel):
+    # "report" (laporkan masalah) | "suggestion" (saran perbaikan)
+    kind: str
+    message: str
+
+
+class ReportOut(BaseModel):
+    id: str
+    knowledge_id: str
+    knowledge_title: str
+    username: str
+    kind: str
+    message: str
+    status: str
+    created_at: datetime
+
+
+class ReportUpdate(BaseModel):
+    # "open" | "resolved"
+    status: str | None = None

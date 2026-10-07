@@ -179,6 +179,22 @@ def review_knowledge(
     return _to_detail(k)
 
 
+@router.post("/{knowledge_id}/unreview")
+def unreview_knowledge(
+    knowledge_id: str,
+    _: User = Depends(require_admin),
+    db: Session = Depends(get_db),
+):
+    """Batalkan status review — kembalikan ke belum_direview."""
+    k = db.get(Knowledge, knowledge_id)
+    if k is None:
+        raise HTTPException(status_code=404, detail="Knowledge tidak ditemukan")
+    k.status = "belum_direview"
+    db.commit()
+    db.refresh(k)
+    return _to_detail(k)
+
+
 @router.delete("/{knowledge_id}", status_code=204)
 def delete_knowledge(
     knowledge_id: str,
