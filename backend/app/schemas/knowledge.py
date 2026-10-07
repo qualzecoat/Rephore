@@ -40,10 +40,40 @@ class KnowledgeOut(BaseModel):
     updated_at: datetime
 
 
+class LinkIn(BaseModel):
+    to_knowledge_id: str
+    # "prerequisite" | "related"
+    relation: str
+
+
+class LinkedArticle(BaseModel):
+    """Artikel yang ditautkan — untuk kotak prasyarat/terkait."""
+
+    id: str  # id tautan (untuk hapus)
+    knowledge_id: str
+    title: str
+    brand: str | None = None
+    model: str | None = None
+    relation: str
+
+
+class AttachmentOut(BaseModel):
+    id: str
+    original_name: str
+    size_bytes: int
+    mime_type: str | None = None
+    description: str = ""
+    created_at: datetime
+
+
 class KnowledgeDetail(KnowledgeOut):
     content_json: dict
     # BBCode sumber
     content_markdown: str
+    prerequisites: list[LinkedArticle] = []
+    required_by: list[LinkedArticle] = []
+    related: list[LinkedArticle] = []
+    attachments: list[AttachmentOut] = []
 
 
 class KnowledgeListOut(BaseModel):

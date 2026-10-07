@@ -8,11 +8,19 @@ import Navbar from "@/components/Navbar";
 import KnowledgeContent, {
   type KnowledgeContentData,
 } from "@/components/KnowledgeContent";
+import KnowledgeExtras, {
+  type Attachment,
+  type LinkedArticle,
+} from "@/components/KnowledgeExtras";
 
 type Detail = KnowledgeContentData & {
   id: string;
   like_count: number;
   success_count: number;
+  prerequisites: LinkedArticle[];
+  required_by: LinkedArticle[];
+  related: LinkedArticle[];
+  attachments: Attachment[];
 };
 
 export default function KnowledgeDetailPage() {
@@ -99,6 +107,12 @@ export default function KnowledgeDetailPage() {
     <main style={{ maxWidth: 760, margin: "2rem auto", padding: "0 1rem" }}>
       <Navbar />
       <KnowledgeContent d={d} />
+      <KnowledgeExtras
+        prerequisites={d.prerequisites ?? []}
+        requiredBy={d.required_by ?? []}
+        related={d.related ?? []}
+        attachments={d.attachments ?? []}
+      />
 
       <h2>Testimoni</h2>
       <p style={{ color: "#666", fontSize: "0.9rem" }}>

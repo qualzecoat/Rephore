@@ -117,3 +117,58 @@ class ReportReply(Base):
     user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id"))
     message: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class KnowledgeLink(Base):
+    """Tautan antar artikel: prasyarat ("wajib baca dulu") atau terkait."""
+
+    __tablename__ = "knowledge_links"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    from_knowledge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("knowledges.id")
+    )
+    to_knowledge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("knowledges.id")
+    )
+    # "prerequisite" | "related"
+    relation: Mapped[str] = mapped_column(String(16))
+    created_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index(
+            "uq_knowledge_link",
+            "from_knowledge_id",
+            "to_knowledge_id",
+            "relation",
+            unique=True,
+        ),
+    )
+
+
+class KnowledgeAttachment(Base):
+    """File lampiran sebuah artikel (firmware, driver, tool, dsb.)."""
+
+    __tablename__ = "knowledge_attachments"
+
+    id: Mapped[str] = mapped_column(
+        String(36), primary_key=True, default=lambda: str(uuid.uuid4())
+    )
+    knowledge_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("knowledges.id")
+    )
+    # nama file di disk (uuid + ekstensi asli) — nama asli disimpan terpisah
+    stored_name: Mapped[str] = mapped_column(String(128))
+    original_name: Mapped[str] = mapped_column(String(255))
+    mime_type: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    size_bytes: Mapped[int] = mapped_column(Integer, default=0)
+    description: Mapped[str] = mapped_column(Text, default="")
+    uploaded_by: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("users.id"), nullable=True
+    )
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
