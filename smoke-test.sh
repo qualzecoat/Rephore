@@ -23,7 +23,10 @@ echo
 echo "[2/4] Menunggu backend siap (maks 90 detik)..."
 READY=0
 for i in $(seq 1 18); do
-  if $DC exec -T backend curl -sf -o /dev/null http://localhost:8000/health 2>/dev/null; then
+  if $DC exec -T backend python -c "
+import urllib.request
+urllib.request.urlopen('http://localhost:8000/health', timeout=5)
+" 2>/dev/null; then
     READY=1
     break
   fi
