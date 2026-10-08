@@ -44,8 +44,12 @@ class AiJob(Base):
     category: Mapped[str | None] = mapped_column(String(32), nullable=True)
     subcategory: Mapped[str | None] = mapped_column(String(64), nullable=True)
     topic: Mapped[str | None] = mapped_column(Text, nullable=True)
-    # "pending" | "running" | "done" | "failed"
+    # "pending" | "running" | "done" | "failed" | "flagged"
+    # "flagged" = aturan keras jadwal tidak bisa dipenuhi bahan riset
+    # (bukan error teknis — admin perlu meninjau alasannya di kolom error)
     status: Mapped[str] = mapped_column(String(16), default="pending", index=True)
+    # snapshot aturan keras dari jadwal saat job dibuat (None = tanpa aturan)
+    constraint: Mapped[str | None] = mapped_column(Text, nullable=True)
     result_knowledge_id: Mapped[str | None] = mapped_column(
         String(36), ForeignKey("knowledges.id"), nullable=True
     )
@@ -80,6 +84,10 @@ class AiSchedule(Base):
     category: Mapped[str | None] = mapped_column(String(32), nullable=True)
     # satu topik per jadwal, misal "root", "bypass FRP", "ganti LCD"
     topic: Mapped[str] = mapped_column(Text, default="")
+    # aturan keras untuk artikel jadwal ini, misal "tanpa akun Mi Cloud".
+    # dicek terhadap bahan riset sebelum penulis berjalan; bila tidak
+    # terpenuhi, job ditandai "flagged" alih-alih menulis panduan standar.
+    constraint: Mapped[str | None] = mapped_column(Text, nullable=True)
     # jam (0-23) kapan jadwal jalan tiap hari
     run_hour: Mapped[int] = mapped_column(Integer, default=2)
     # anti-duplikat: lewati bila artikel mirip sudah ada dalam N hari terakhir

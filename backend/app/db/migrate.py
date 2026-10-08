@@ -76,6 +76,14 @@ def run_migrations(engine: Engine) -> None:
                 "WHERE replies_closed IS NULL"
             )
         )
+        # Aturan keras jadwal (no-Mi-Cloud dkk): kolom di jadwal + snapshot di job.
+        # Nama kolom di-quote karena CONSTRAINT adalah reserved word di Postgres.
+        conn.execute(
+            text('ALTER TABLE ai_schedules ADD COLUMN IF NOT EXISTS "constraint" TEXT')
+        )
+        conn.execute(
+            text('ALTER TABLE ai_jobs ADD COLUMN IF NOT EXISTS "constraint" TEXT')
+        )
         # Enkripsi API key provider at-rest (2026-10-07): enkripsi nilai
         # plaintext yang masih tersisa. Import di dalam fungsi agar migrate.py
         # tetap ringan dan tidak ada import cycle.

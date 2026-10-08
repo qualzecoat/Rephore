@@ -33,6 +33,24 @@ docker compose up --build
 - Backend API: http://localhost:8000
 - API docs: http://localhost:8000/docs
 
+## Cara jalan di Windows (cmd.exe)
+
+```cmd
+copy backend\.env.example backend\.env
+copy frontend\.env.example frontend\.env.local
+docker compose up --build
+```
+
+Buat admin pertama — di cmd, `curl` harus satu baris dengan kutip ganda
+(ganti `ganti-ini` dengan password pilihanmu):
+
+```cmd
+curl -X POST http://localhost:8000/auth/seed-admin -H "Content-Type: application/json" -d "{\"username\":\"admin\",\"password\":\"ganti-ini\"}"
+```
+
+> Alternatif tanpa curl: buka http://localhost:8000/docs, cari
+> `POST /auth/seed-admin`, klik "Try it out" lalu "Execute".
+
 ## Auth — langkah pertama
 
 ```bash

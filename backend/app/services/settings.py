@@ -13,7 +13,12 @@ import os
 from sqlalchemy.orm import Session
 
 from ..models.settings import AppSetting
-from .ai import BBCODE_SPEC, DEFAULT_KNOWLEDGE_SYSTEM, DEFAULT_KNOWLEDGE_USER
+from .ai import (
+    BBCODE_SPEC,
+    DEFAULT_CONSTRAINT_CHECK,
+    DEFAULT_KNOWLEDGE_SYSTEM,
+    DEFAULT_KNOWLEDGE_USER,
+)
 from .crypto import decrypt_api_key, encrypt_api_key, is_encrypted
 from .research import DEFAULT_RESEARCH_RULES
 
@@ -94,6 +99,18 @@ SETTING_DEFS: list[dict] = [
         "type": "textarea",
         "default": DEFAULT_RESEARCH_RULES,
         "placeholders": [],
+    },
+    {
+        "key": "prompt.constraint_check",
+        "section": "Prompt Artikel",
+        "label": "Template prompt penilai aturan keras",
+        "desc": "Dipakai worker untuk menilai — SEBELUM penulis berjalan — "
+                "apakah bahan riset bisa memenuhi aturan keras jadwal. "
+                "Variabel yang tersedia: {target}, {focus}, {constraint}, {brief}. "
+                "Kurung kurawal lain akan dianggap rusak dan template default dipakai.",
+        "type": "textarea",
+        "default": DEFAULT_CONSTRAINT_CHECK,
+        "placeholders": ["target", "focus", "constraint", "brief"],
     },
 ]
 

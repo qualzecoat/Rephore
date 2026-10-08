@@ -41,6 +41,7 @@ type Schedule = {
   run_hour: number;
   dedup_days: number | null;
   is_active: boolean;
+  constraint: string | null;
   last_run_date: string | null;
 };
 
@@ -79,6 +80,7 @@ export default function AdminAiPage() {
   const [sTopic, setSTopic] = useState("root");
   const [sHour, setSHour] = useState(2);
   const [sDedup, setSDedup] = useState(30);
+  const [sConstraint, setSConstraint] = useState("");
 
   function load() {
     api<Provider[]>("/ai/providers").then(setProviders).catch(() => {});
@@ -202,9 +204,11 @@ export default function AdminAiPage() {
           topic: sTopic,
           run_hour: sHour,
           dedup_days: sDedup,
+          constraint: sConstraint.trim() || null,
         }),
       });
       setSName("");
+      setSConstraint("");
       load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Gagal menyimpan jadwal");
@@ -298,7 +302,7 @@ export default function AdminAiPage() {
       <ul>
         {jobs.map((j) => (
           <li key={j.id} style={{ marginBottom: "0.4rem" }}>
-            [{j.status}] {j.type} — {[j.brand, j.phone_model, j.category, j.subcategory, j.topic].filter(Boolean).join(" · ")}
+            [{j.status}]{j.status === "flagged" && " ⚠️ aturan tidak terpenuhi"} {j.type} — {[j.brand, j.phone_model, j.category, j.subcategory, j.topic].filter(Boolean).join(" · ")}
             {j.result_knowledge_id && (
               <> → <Link href={`/knowledge/${j.result_knowledge_id}`}>lihat hasil</Link></>
             )}
@@ -318,6 +322,7 @@ export default function AdminAiPage() {
           <li key={s.id} style={{ marginBottom: "0.4rem" }}>
             <b>{s.name}</b> — tiap hari jam {s.run_hour}:00, topik: {s.topic || "-"}
             <span style={{ color: "#666" }}> (anti-duplikat {s.dedup_days ?? 30} hari)</span>
+            {s.constraint && <span style={{ color: "#a60" }}> ⛔ Aturan: {s.constraint}</span>}
             {[s.brand, s.phone_model, s.category].filter(Boolean).length > 0 &&
               ` (${[s.brand, s.phone_model, s.category].filter(Boolean).join(" · ")})`}
             {s.last_run_date && <span style={{ color: "#666" }}> (terakhir: {s.last_run_date})</span>}{" "}
@@ -349,6 +354,7 @@ export default function AdminAiPage() {
           <option value="hardware">hardware</option>
         </select>
         <input placeholder="Topik (misal root)" value={sTopic} onChange={(e) => setSTopic(e.target.value)} required style={inputStyle} />
+        <input placeholder="Aturan keras (opsional, misal: tanpa akun Mi Cloud)" value={sConstraint} onChange={(e) => setSConstraint(e.target.value)} title="Dicek ke bahan riset sebelum AI menulis. Bila tidak terpenuhi, job ditandai — bukan ditulis diam-diam." style={{ ...inputStyle, width: "18rem" }} />
         <label style={inputStyle}>Jam: <input type="number" min={0} max={23} value={sHour} onChange={(e) => setSHour(Number(e.target.value))} style={{ width: "3rem" }} /></label>
         <label style={inputStyle} title="Jadwal dilewati bila artikel mirip sudah ada dalam N hari terakhir">Anti-duplikat (hari): <input type="number" min={1} max={365} value={sDedup} onChange={(e) => setSDedup(Number(e.target.value))} style={{ width: "3.5rem" }} /></label>
         <button type="submit" style={inputStyle}>Simpan jadwal</button>

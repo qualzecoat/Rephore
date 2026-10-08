@@ -25,10 +25,12 @@ from app.models.ai import AiJob, AiProvider, AiSchedule
 from app.models.knowledge import Knowledge
 from app.models.logwatch import AiSuggestion, ErrorEvent, LogAnalysisRun
 from app.services.ai import (
+    ConstraintUnsatisfiable,
     build_knowledge_prompt,
     chat_complete,
     embed_text,
     embedding_text_for,
+    evaluate_constraint,
 )
 from app.services.crypto import decrypt_api_key
 from app.services.logwatch import (
@@ -99,6 +101,44 @@ def run_job(db, job: AiJob) -> None:
     except Exception as e:
         print(f"[worker] riset error (non-fatal): {e}", flush=True)
 
+    # Aturan keras jadwal: dinilai terhadap bahan riset SEBELUM penulis
+    # berjalan. Bila tidak terpenuhi -> job ditandai "flagged" (bukan
+    # "failed") dengan alasan yang jujur; tidak ada artikel standar
+    # yang ditulis diam-diam.
+    constraint = (job.constraint or "").strip()
+    if constraint:
+        target = (
+            " ".join(p for p in [job.brand, job.phone_model] if p)
+            or "smartphone umum"
+        )
+        focus = (
+            " ".join(p for p in [job.category, job.subcategory, job.topic] if p)
+            or "servis umum"
+        )
+        verdict = evaluate_constraint(
+            brief,
+            constraint,
+            target,
+            focus,
+            get_setting(db, "prompt.constraint_check"),
+            lambda messages: chat_complete(
+                provider.base_url,
+                api_key,
+                model,
+                messages,
+                temperature=0.2,
+                max_tokens=600,
+            ),
+        )
+        if not verdict["satisfiable"]:
+            raise ConstraintUnsatisfiable(
+                "Aturan keras tidak terpenuhi: " + verdict["reason"]
+            )
+        print(
+            f"[worker] aturan keras lolos: {verdict['reason'][:160]}",
+            flush=True,
+        )
+
     messages = build_knowledge_prompt(
         job.brand,
         job.phone_model,
@@ -107,6 +147,7 @@ def run_job(db, job: AiJob) -> None:
         job.topic,
         research_brief=brief,
         prompts=prompts,
+        constraint=constraint or None,
     )
     content = chat_complete(
         provider.base_url,
@@ -171,6 +212,12 @@ def process_pending(db) -> int:
                 f"[worker] job {job.id} selesai -> knowledge {job.result_knowledge_id}",
                 flush=True,
             )
+        except ConstraintUnsatisfiable as e:
+            # bukan error teknis: aturan keras memang tidak bisa dipenuhi.
+            # ditandai agar admin meninjau, bukan mengira worker crash.
+            job.status = "flagged"
+            job.error = str(e)[:2000]
+            print(f"[worker] job {job.id} ditandai: {e}", flush=True)
         except Exception as e:
             job.status = "failed"
             job.error = str(e)[:2000]
@@ -255,6 +302,8 @@ def check_schedules(db) -> int:
                 category=s.category,
                 subcategory=s.topic or None,
                 topic=s.topic or None,
+                # snapshot aturan keras jadwal saat job dibuat
+                constraint=(s.constraint or "").strip() or None,
                 status="pending",
                 created_by=s.created_by,
             )

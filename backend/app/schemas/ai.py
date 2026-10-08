@@ -96,6 +96,8 @@ class ScheduleIn(BaseModel):
     # anti-duplikat: lewati bila artikel mirip sudah ada dalam N hari terakhir
     dedup_days: int = 30
     is_active: bool = True
+    # aturan keras untuk artikel jadwal ini (opsional), misal "tanpa akun Mi Cloud"
+    constraint: str | None = None
 
 
 class ScheduleUpdate(BaseModel):
@@ -109,6 +111,7 @@ class ScheduleUpdate(BaseModel):
     run_hour: int | None = None
     dedup_days: int | None = None
     is_active: bool | None = None
+    constraint: str | None = None
 
 
 class ScheduleOut(BaseModel):
@@ -125,5 +128,6 @@ class ScheduleOut(BaseModel):
     run_hour: int
     dedup_days: int | None
     is_active: bool
+    constraint: str | None
     last_run_date: date | None
     created_at: datetime
