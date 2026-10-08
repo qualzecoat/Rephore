@@ -2,10 +2,13 @@
 # ============================================================
 #  Rephore smoke test (Linux / VPS Sirius)
 #  Jalankan dari /opt/sirius/projects/rephore SETELAH rebuild:
-#    DOMAIN=rephore.aditiamh.my.id docker compose -f docker-compose.yml \
+#    DOMAIN=rephore.contoh.com docker compose -f docker-compose.yml \
 #      -f docker-compose.prod.yml \
 #      -f /opt/sirius/compose/rephore/docker-compose.sirius.yml \
 #      up -d --build postgres redis backend worker frontend
+#  lalu:
+#    DOMAIN=rephore.contoh.com bash smoke-test.sh
+#  (ganti rephore.contoh.com dengan domain aslimu via env var DOMAIN)
 #
 #  Mengecek: container running, backend /health OK (via exec,
 #  karena port tidak dipublish ke host), worker polling, dan
@@ -13,6 +16,9 @@
 # ============================================================
 set -u
 FAIL=0
+# Domain diambil dari env var agar domain asli tidak tertulis di repo publik.
+# Contoh di VPS: DOMAIN=domain-aslimu bash smoke-test.sh
+DOMAIN="${DOMAIN:-rephore.contoh.com}"
 DC="docker compose -f docker-compose.yml -f docker-compose.prod.yml -f /opt/sirius/compose/rephore/docker-compose.sirius.yml"
 
 echo
@@ -46,12 +52,12 @@ else
   echo "    PERINGATAN: worker belum terlihat polling — cek: $DC logs worker"
 fi
 
-echo "[4/4] Mengecek situs HTTPS..."
-CODE=$(curl -sk -o /dev/null -w "%{http_code}" https://rephore.aditiamh.my.id/ 2>/dev/null)
+echo "[4/4] Mengecek situs HTTPS ($DOMAIN)..."
+CODE=$(curl -sk -o /dev/null -w "%{http_code}" "https://${DOMAIN}/" 2>/dev/null)
 if [ "$CODE" = "200" ]; then
-  echo "    situs OK (https://rephore.aditiamh.my.id -> 200)"
+  echo "    situs OK (https://${DOMAIN} -> 200)"
 else
-  echo "    GAGAL: situs menjawab $CODE — cek Caddy + $DC logs frontend"
+  echo "    GAGAL: situs menjawab $CODE — cek Caddy + \$DC logs frontend"
   FAIL=1
 fi
 
