@@ -16,6 +16,8 @@ DEFAULT_RESEARCH_RULES = (
     "ATURAN PAKAI BAHAN INI:\n"
     "- Jadikan acuan utama langkah-langkah, peringatan, dan troubleshooting.\n"
     "- Tulis ulang dengan bahasamu sendiri; JANGAN copy-paste kalimat forum.\n"
+    "- Bila topik mengandung batasan (mis. 'tanpa ...', 'tanpa PC'), "
+    "utamakan sumber yang membahas batasan itu secara spesifik.\n"
     "- Bila sumber bertentangan, pilih yang didukung bukti/komentar "
     "terbanyak dan catat perbedaannya di [troubleshooting].\n"
     "- Cantumkan link file/tool yang relevan pada langkah yang "
@@ -149,20 +151,52 @@ def fetch_page(url, max_chars=MAX_CHARS_PER_PAGE):
         return "", []
 
 
+# Peta istilah ID -> EN untuk query (forum mayoritas berbahasa Inggris;
+# kata seperti "tanpa" tidak akan cocok bila dibiarkan apa adanya).
+_ID_EN_TERMS = {
+    "tanpa": "without",
+    "cara": "how to",
+    "akun": "account",
+    "dengan": "with",
+    "pc": "pc",
+    "komputer": "computer",
+    "pengaturan": "settings",
+    "layar": "screen",
+    "baterai": "battery",
+    "sinyal": "signal",
+}
+
+
+def _en_variant(text):
+    return " ".join(_ID_EN_TERMS.get(w.lower(), w) for w in text.split())
+
+
 def _build_queries(brand, phone_model, topic):
     device = " ".join(p for p in [brand, phone_model] if p)
     t = topic or ""
+    t_en = _en_variant(t)
     queries = []
     if device and t:
         queries.append("site:xdaforums.com %s %s" % (device, t))
-        queries.append("%s %s tutorial forum" % (device, t))
-        queries.append("%s %s guide xda" % (device, t))
+        if t_en != t:
+            # varian Inggris: menangkap thread yang membahas batasan
+            # yang sama (mis. "without mi account")
+            queries.append("site:xdaforums.com %s %s" % (device, t_en))
+        queries.append("%s %s tutorial" % (device, t))
+        queries.append("%s %s guide" % (device, t_en))
     elif t:
         queries.append("site:xdaforums.com %s android" % t)
         queries.append("%s tutorial servis hp forum" % t)
     elif device:
         queries.append("site:xdaforums.com %s" % device)
-    return queries[:3]
+    # buang duplikat, maksimal 4 query
+    seen = set()
+    out = []
+    for x in queries:
+        if x not in seen:
+            seen.add(x)
+            out.append(x)
+    return out[:4]
 def research_topic(brand, phone_model, topic, config=None):
     """Jalankan riset forum untuk sebuah topik. Kembalikan brief teks / None.
 

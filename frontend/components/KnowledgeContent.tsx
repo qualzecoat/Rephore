@@ -18,7 +18,7 @@ export type KnowledgeContentData = {
   tools: string[];
   troubleshooting: string | null;
   tags: string[];
-  content_json: { steps: ContentStep[] };
+  content_json: { steps: ContentStep[]; jawaban?: string | null };
 };
 
 /** Render isi knowledge (judul, meta, tag, alat, langkah, troubleshooting). */
@@ -47,6 +47,23 @@ export default function KnowledgeContent({ d }: { d: KnowledgeContentData }) {
           </span>
         ))}
       </p>
+
+      {d.content_json.jawaban && (
+        <div
+          style={{
+            background: "#eff6ff",
+            border: "1px solid #bfdbfe",
+            borderRadius: "8px",
+            padding: "0.9rem 1rem",
+            marginBottom: "1rem",
+          }}
+        >
+          <strong>💡 Jawaban langsung</strong>
+          <p style={{ margin: "0.4rem 0 0", whiteSpace: "pre-wrap" }}>
+            {d.content_json.jawaban}
+          </p>
+        </div>
+      )}
 
       {d.tools.length > 0 && (
         <>

@@ -18,6 +18,7 @@ penjelasan di luar tag.
 [knowledge]
 [title]Judul tutorial yang jelas[/title]
 [meta brand="Samsung" model="Galaxy A54" codes="SM-A546B, SM-A546E" category="hardware" subcategory="ganti LCD" difficulty="mudah|sedang|sulit" est_time="60 menit"]
+[jawaban]Jawaban langsung atas permintaan user (1-3 kalimat).[/jawaban]
 [tools]
 - Alat 1
 - Alat 2
@@ -36,7 +37,12 @@ Aturan:
 - category hanya "hardware" atau "software".
 - codes: daftar kode HP dipisah koma, kosongkan bila tidak tahu.
 - Tulis instruksi yang konkret dan berurutan, minimal 3 langkah.
-- Sertakan peringatan keselamatan yang relevan."""
+- Sertakan peringatan keselamatan yang relevan.
+- [jawaban] WAJIB: jawab TEPAT permintaan user termasuk batasannya
+  (mis. "tanpa akun Mi", "tanpa PC") dalam 1-3 kalimat. Bila yang diminta
+  TIDAK BISA dilakukan secara resmi/aman, katakan dengan jelas + alasannya,
+  lalu arahkan ke alternatif terdekat. JANGAN mengarang cara yang tidak ada
+  dan JANGAN menulis panduan generik yang mengabaikan batasan."""
 
 
 def _headers(api_key: str) -> dict:
@@ -97,6 +103,11 @@ DEFAULT_KNOWLEDGE_SYSTEM = (
 DEFAULT_KNOWLEDGE_USER = (
     "Buatkan tutorial servis untuk: {target}\n"
     "Fokus: {focus}\n\n"
+    "WAJIB: baca kembali permintaan di atas dan jawab TEPAT apa yang diminta, "
+    "termasuk setiap batasan (contoh: 'tanpa akun Mi Cloud', 'tanpa PC'). "
+    "Tulis jawaban langsungnya di tag [jawaban]. Bila permintaan tidak mungkin "
+    "dipenuhi, nyatakan itu dengan jelas beserta alasannya + alternatif "
+    "realistis — jangan mengarang dan jangan mengabaikan batasannya.\n\n"
     "LANGKAH PERTAMA: cari tahu informasi lengkap HP ini \u2014 "
     "nama-nama pasar, SEMUA kode/varian (misal SM-A546B, SM-A546E), "
     "dan cantumkan semuanya di atribut codes pada tag [meta]. "

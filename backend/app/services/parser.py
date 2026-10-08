@@ -35,6 +35,7 @@ KNOWN_TAGS = {
     "knowledge",
     "title",
     "meta",
+    "jawaban",
     "tools",
     "steps",
     "step",
@@ -182,6 +183,9 @@ def _to_structured(root: "_Node", warnings: list[str]) -> dict:
     ts_nodes = _find_all(scope, "troubleshooting")
     troubleshooting = _inner_text(ts_nodes[0]).strip() if ts_nodes else ""
 
+    jwb_nodes = _find_all(scope, "jawaban")
+    jawaban = _inner_text(jwb_nodes[0]).strip() if jwb_nodes else ""
+
     if not title:
         warnings.append("Judul kosong — tag [title] tidak ditemukan atau kosong")
     if not steps:
@@ -201,5 +205,6 @@ def _to_structured(root: "_Node", warnings: list[str]) -> dict:
         "tools": tools,
         "steps": steps,
         "troubleshooting": troubleshooting,
+        "jawaban": jawaban,
         "warnings": warnings,
     }

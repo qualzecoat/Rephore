@@ -19,6 +19,7 @@ def apply_parsed(k: Knowledge, parsed: dict, bbcode: str) -> None:
     k.content_json = {
         "title": parsed["title"],
         "meta": meta,
+        "jawaban": parsed.get("jawaban") or "",
         "tools": parsed["tools"],
         "steps": parsed["steps"],
         "troubleshooting": parsed["troubleshooting"],
